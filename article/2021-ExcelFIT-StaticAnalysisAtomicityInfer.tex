@@ -41,7 +41,7 @@
     captionpos=b,
     tabsize=4,
     keepspaces=true,
-    belowskip=-1.2 \baselineskip
+    belowskip=-1.2\baselineskip
 }
 
 \lstdefinestyle{c}{
@@ -107,7 +107,7 @@
 % ABSTRACT and TEASER
 %===============================================================================
 \Abstract{%
-    This work aims to improve and extend \emph{Atomer}. A~further goal is to perform new experiments with it. Atomer is a~\emph{static analyser} that detects \emph{atomicity violations}, created within the bachelor’s thesis of the author as a~module of \emph{Facebook Infer}\,---\,an open-source static analysis framework that promotes efficient analysis. The original analysis assumes that \emph{sequences of function calls} executed \emph{atomically once} should probably be executed \emph{always atomically}, and it naturally works with sequences. In this work, to improve \emph{scalability}, the use of sequences was \emph{approximated by sets}. Further, several new features were implemented, notably: support for \emph{C++ and Java languages}; more advanced and precise \emph{manipulation with locks}; and the analysis's \emph{parametrisation}. The new extensions were verified and evaluated on programs created for testing purposes. Furthermore, new experiments on \emph{extensive real-life programs} were made, and already fixed and reported \emph{real bugs} were rediscovered. The experiments revealed a~\emph{significant increase of precision} of the new version of Atomer.%
+    This work aims to improve and extend \emph{Atomer} significantly. It is a~\emph{static analyser} that detects \emph{atomicity violations}. In particular, it detects \emph{sequences of function calls} that are likely to be intended to execute atomically, but the atomicity is not always ensured. The first basic version of this checker was created within the bachelor’s thesis of the author as a~module of \emph{Facebook Infer}\,---\,an open-source static analysis framework that aims a~lot at \emph{scalable} analysis. The idea underlying this approach is that sequences of calls executed \emph{atomically once} should probably be executed \emph{always atomically}. The original implementation hence naturally worked with call sequences. In this work, to improve scalability, the use of sequences was \emph{approximated by sets}. Further, several new features were implemented, notably: support for \emph{C++ and Java languages}; support for various new kinds of \emph{locks} (such as \emph{re-entrant locks} or \emph{lock guards}); or a~more precise way of \emph{distinguishing between different lock instances}. Moreover, the analysis has been \emph{parameterised} by function names to concentrate on during the analysis and limits of the number of functions in \emph{critical sections}. The new extensions were verified and evaluated on programs created for testing purposes. Furthermore, new experiments on \emph{extensive real-life programs} were made, with the checker re-discovering some previously discovered but hard-to-find \emph{real bugs}. The experiments revealed a~\emph{significant increase of the precision} of the new version of Atomer.%
 }
 
 \Teaser{\TeaserImage{teaser.pdf}}
@@ -133,19 +133,28 @@
 %===============================================================================
 \section{Introduction}
 
-Bugs are an integral part of computer programs ever since the inception of the programming discipline. Unfortunately, they are often hidden in unexpected places, and they can lead to unexpected behaviour, which may cause significant damage. Nowadays, developers have many possibilities of catching bugs in the early development process. \emph{Dynamic analysers} or tools for \emph{automated testing} are often used, and they are satisfactory in many cases. Nevertheless, they can still leave too many bugs undetected because they can analyse only \emph{particular program flows} dependent on the input data. An alternative solution is \emph{static analysis} that has its shortcomings as well, such as the \emph{scalability} on large codebases or a~considerably high rate of incorrectly reported errors (so-called \emph{false positives} or \emph{false alarms}). Several efficient tools for static analysis were implemented, e.g., Coverity or CodeSonar. However, they are often proprietary and difficult to openly evaluate and extend.
+Bugs have been present in computer programs ever since the inception of the programming discipline. Unfortunately, they are often hidden in unexpected places, and they can lead to unexpected behaviour, which may cause significant damage. Nowadays, developers have many possibilities of catching bugs in the early development process. \emph{Dynamic analysers} or tools for \emph{automated testing} are often used, and they are satisfactory in many cases. Nevertheless, they can still leave too many bugs undetected because they can analyse only \emph{particular program flows} dependent on the input data. An alternative solution is \emph{static analysis} (despite it, of course, suffers from some problems too\,---\,such as the possibility of reporting many \emph{false alarms}\footnote{So-called \textbf{false alarms} (also \emph{false positives}) are incorrectly reported errors, i.e., actually, they are not errors.}). Quite some tools for static analysis were implemented, e.g., Coverity or CodeSonar. However, they are often proprietary and difficult to openly evaluate and extend.
 
-Recently, Facebook introduced \emph{Facebook Infer}: an \emph{open-source} tool for creating \emph{highly scalable}, \emph{compositional}, \emph{incremental}, and \emph{interprocedural} static analysers. Facebook Infer has grown considerably, but it is still under active development by many teams across the globe. It is employed every day not only in Facebook itself, but also in other companies, such as Spotify, Uber, Mozilla, or Amazon. Currently, Facebook Infer provides several analysers that check for various types of bugs, such as buffer overflows, data races and some forms of deadlocks and starvation, null-dereferencing, or memory leaks. However, most importantly, Facebook Infer is a~\emph{framework} for building new analysers quickly and easily. Unfortunately, the current version of Facebook Infer still lacks better support for \emph{concurrency bugs}. While it provides a~reasonably advanced data race analyser, it is limited to Java and C++ programs only and fails for C~programs, which use a~\emph{lower-level lock manipulation}.
+Recently, Facebook introduced \emph{Facebook Infer}: an \emph{open-source} tool for creating \emph{highly scalable}, \emph{compositional}, \emph{incremental}, and \emph{interprocedural} static analysers. Facebook Infer has grown considerably, but it is still under active development by many teams across the globe. It is employed every day not only in Facebook itself but also in other companies, such as Spotify, Uber, Mozilla, or Amazon. Currently, Facebook Infer provides several analysers that check for various types of bugs, such as buffer overflows, data races and some forms of deadlocks and starvation, null-dereferencing, or memory leaks. However, most importantly, Facebook Infer is a~\emph{framework} for building new analysers quickly and easily. Unfortunately, the current version of Facebook Infer still lacks better support for \emph{concurrency bugs}. While it provides a~reasonably advanced data race analyser, it is limited to Java and C++ programs only and fails for C~programs, which use a~\emph{lower-level lock manipulation}. Moreover, the only available checker of \emph{atomicity of call sequences} is the first version of \emph{Atomer}~\cite{harmimBP} proposed in the bachelor's thesis of the author.
 
-In \emph{concurrent programs}, there are often \emph{atomicity requirements} for the execution of specific sequences of instructions. Violating these requirements may cause many kinds of problems, such as unexpected behaviour, exceptions, segmentation faults, or other failures. \emph{Atomicity violations} are usually not verified by compilers, unlike syntactic or some sorts of semantic rules. Moreover, atomicity requirements, in most cases, are not even documented at all. Therefore, in the end, programmers themselves must abide by these requirements and usually lack any tool support. Furthermore, in general, it is difficult to avoid errors in \emph{atomicity-dependent programs}, especially in large projects, and even more laborious and time-consuming is finding and fixing them.
+At the same time, in \emph{concurrent programs}, there are often \emph{atomicity requirements} for the execution of specific sequences of instructions. Violating these requirements may cause many kinds of problems, such as unexpected behaviour, exceptions, segmentation faults, or other failures. \emph{Atomicity violations} are usually not verified by compilers, unlike syntactic or some sorts of semantic rules. Moreover, atomicity requirements, in most cases, are not even documented at all. Therefore, in the end, programmers themselves must abide by these requirements and usually lack any tool support. Furthermore, in general, it is difficult to avoid errors in \emph{atomicity-dependent programs}, especially in large projects, and even more laborious and time-consuming is finding and fixing them.
 
-Within the author's bachelor's thesis~\cite{harmimBP}, \emph{Atomer}\footnote{The implementation of~\textbf{Atomer} is available on GitHub as an \emph{open-source} repository. The link can be found among the supplementary materials of this paper.} was proposed\,---\,a~\emph{static analyser} for finding some forms of \emph{atomicity violations} implemented as a~Facebook Infer's module. In particular, the stress is put on the \emph{atomic execution of sequences of function calls}, which is often required, e.g., when using specific library calls. It is based on the assumption that sequences of function calls executed \emph{atomically once} should probably be executed \emph{always atomically}, and it naturally works with sequences. In fact, the idea of checking the atomicity of certain sequences of function calls is inspired by the work of \emph{contracts for concurrency}~\cite{contracts2017}. In the terminology of~\cite{contracts2017}, the atomicity of specific sequences of calls is the most straightforward (yet very useful in practice) kind of contracts for concurrency. The implementation of the first version of Atomer mainly targets \emph{C~programs} that use \emph{POSIX thread}, i.e., \emph{PThread locks}.
+As already mentioned, within the author's bachelor's thesis~\cite{harmimBP}, \emph{Atomer}\footnote{The implementation of~\textbf{Atomer} is available at GitHub as an \emph{open-source} repository. The link can be found among the supplementary materials of this paper.} was proposed\,---\,a~\emph{static analyser} for finding some forms of \emph{atomicity violations} implemented as a~Facebook Infer's module. In particular, the stress is put on the \emph{atomic execution of sequences of function calls}, which is often required, e.g., when using specific library calls. For example, assume the function from Listing~\ref{list:exampleViolation} that replaces item~\texttt{a} in an array by item~\texttt{b}. It contains atomicity violation\,---\,the index obtained may be outdated when \texttt{set} is executed, i.e., \texttt{index\_of} and \texttt{set} should be executed atomically. The analysis is based on the assumption that sequences of function calls executed \emph{atomically once} should probably be executed \emph{always atomically}. Hence, the checker naturally works with sequences. In fact, the idea of checking the atomicity of certain sequences of function calls is inspired by the work of \emph{contracts for concurrency}~\cite{contracts2017}. In the terminology of~\cite{contracts2017}, the atomicity of specific sequences of calls is the most straightforward (yet very useful in practice) kind of contracts for concurrency. However, while the idea of using sequences in the given context is indeed natural and rather exact, it quite severely limits the \emph{scalability} of the analysis (indeed, even with a~few functions, there can appear numerous different orders in which they can be called). Moreover, the implementation of the first version of Atomer targets mainly \emph{C~programs} using \emph{POSIX threads} and POSIX thread locks (\emph{PThread locks}). Consequently, there was no support for other languages and their locking mechanisms in the first version of Atomer, preventing it from being applicable to a~broader range of concurrent programs.
 
-Within this work, Atomer was improved and extended. Further, other experiments were performed. In particular, to improve \emph{scalability}, working with sequences of function calls was \emph{approximated} by working with \emph{sets of function calls}. Furthermore, several new features were implemented, notably: support for \emph{C++ and Java languages}; more advanced and precise \emph{manipulation with locks}; and the analysis's \emph{parametrisation}.
+\begin{lstlisting}[
+    style=c, label={list:exampleViolation}, float=hbt,
+    caption={Example of \emph{atomicity violation}}
+]
+void replace(int a, int b) {
+    int i = array.index_of(a);
+    if (i >= 0) array.set(i, b); }
+\end{lstlisting}
 
-The development of Atomer and its extensions have been discussed with the developers of Facebook Infer, and it was supported under the H2020 ECSEL project Aquas. Currently, it is a~part of the H2020 ECSEL project Arrowhead Tools. Parts of the paper are taken from the thesis~\cite{harmimBP}.
+Within this work, Atomer has been significantly improved and extended. In particular, to improve scalability, working with sequences of function calls was \emph{approximated} by working with \emph{sets of function calls}. Furthermore, several new features were implemented, notably: support for \emph{C++ and Java languages}, including various advanced kinds of locks these languages offer (such \emph{re-entrant locks} or \emph{lock guards}); or a~more precise way of \emph{distinguishing between different lock instances}. Moreover, the analysis has been \emph{parameterised} by function names to concentrate on during the analysis and limits of the number of functions in \emph{critical sections}. Lastly, new experiments were performed to test the Atomer's capabilities.
 
-The rest of the article is organised as follows. In Section~\ref{sec:infer}, there is introduced the \emph{Facebook Infer} framework. \emph{Atomer} is described in Section~\ref{sec:atomer}. This is followed by Section~\ref{sec:proposal}, which considers all the extensions and improvements proposed within this work. The implementation of these extensions, together with the experimental evaluation of the new Atomer's features and other experiments performed within this work, are discussed in Section~\ref{sec:exp}. Finally, the paper is concluded in Section~\ref{sec:conc}.
+The development of the original Atomer started under the H2020 ECSEL project Aquas. The development of its new version is supported by the H2020 ECSEL project Arrowhead Tools. The development has been discussed with the developers of Facebook Infer too. Parts of the paper concerning the Facebook Infer framework and the basic version of Atomer are partially taken from the thesis~\cite{harmimBP}.
+
+The rest of the article is organised as follows. In Section~\ref{sec:infer}, there is introduced the \emph{Facebook Infer} framework. \emph{Atomer} is described in Section~\ref{sec:atomer}. Subsequently, Section~\ref{sec:proposal} presents all the proposed extensions and improvements. The implementation of these extensions, together with the experimental evaluation of the new Atomer's features and other experiments performed within this work, are discussed in Section~\ref{sec:exp}. Finally, the paper is concluded in Section~\ref{sec:conc}.
 
 
 %===============================================================================
@@ -154,42 +163,39 @@ The rest of the article is organised as follows. In Section~\ref{sec:infer}, the
 
 This section describes the principles and features of \emph{Facebook Infer}. The description is based on information provided at the Facebook Infer's website\footnote{\textbf{Facebook Infer's} website: \url{https://fbinfer.com}.} and in~\cite{inferAISpeech}. Parts of this section are taken from~\cite{harmimBP}.
 
-Facebook Infer is an \emph{open-source}\footnote{A~link to the \textbf{Facebook Infer's open-source repository} is in the supplementary materials of the paper.} \emph{static analysis framework}\footnote{A~brief explanation of \textbf{static analysis} itself can be found in~\cite{harmimBP}\,---\,Section~2.1. In more detail, it is then explained in~\cite{staticAnalysisMoller, programAnalysisNielson, staticAnalysisRival}.}, which can discover various kinds of software bugs of a~given program, emphasising \emph{scalability}. A~more detailed explanation of Facebook Infer architecture is given in Section~\ref{sec:fbinferArch}. Facebook Infer is implemented in \emph{OCaml}\footnote{\textbf{OCaml's} website: \url{https://ocaml.org}.}\,---\,a~\emph{functional} programming language, also supporting \emph{imperative} and \emph{object-oriented} paradigms. Facebook Infer was originally a~standalone tool focused on \emph{sound verification} of the absence of \emph{memory safety violations}, which was first published in the well-known paper~\cite{inferBiabduction}.
+Facebook Infer is an \emph{open-source}\footnote{A~link to the \textbf{Facebook Infer's open-source repository} is in the supplementary materials of the paper.} \emph{static analysis framework}\footnote{For an explanation of the general meaning of \textbf{static analysis}, see, e.g., \cite{staticAnalysisMoller, programAnalysisNielson, staticAnalysisRival}.}, which can discover various kinds of software bugs and which stress the \emph{scalability} of the analysis. A~more detailed explanation of Facebook Infer architecture is given in Section~\ref{sec:fbinferArch}. Facebook Infer is implemented in \emph{OCaml}\,---\,a~\emph{functional} programming language, also supporting \emph{imperative} and \emph{object-oriented} paradigms. Infer has initially been a~rather specialised tool focused on \emph{sound verification} of the absence of \emph{memory safety violations}, which was first published in the well-known paper~\cite{inferBiabduction}. Once Facebook has purchased it, its scope significantly widened and abandoned the focus on sound analysis only.
 
-Facebook Infer can analyse programs written in several languages. In particular, it supports the following languages: C, C++, Java, and Objective-C (and C\#, see~\cite{inferCSharp}). Moreover, it is possible to extend Facebook Infer's \emph{frontend} for supporting other languages. Currently, Facebook Infer contains many analyses focusing on various kinds of bugs, e.g., \emph{Inferbo} (buffer overruns); \emph{RacerD} (data races)~\cite{racerD, staticRaceDetectorTruePositives}; and other analyses that check for buffer overflows, some forms of deadlocks and starvation, null-dereferencing, memory leaks, resource leaks, etc.
+Facebook Infer can analyse programs written in several languages. In particular, it supports the following languages: C, C++, Java, and Objective-C (as well as C\#, see~\cite{inferCSharp}). Moreover, it is possible to extend Facebook Infer's \emph{frontend} for supporting other languages. Currently, Facebook Infer contains many analyses focusing on various kinds of bugs, e.g., \emph{Inferbo} (buffer overruns); \emph{RacerD} (data races)~\cite{racerD, staticRaceDetectorTruePositives}; and other analyses that check for buffer overflows, some forms of deadlocks and starvation, null-dereferencing, memory leaks, resource leaks, etc.
 
 \subsection{Abstract Interpretation in Facebook Infer}
 
-Facebook Infer is a~general framework for static analysis of programs, and it is based on \emph{abstract interpretation}\footnote{\textbf{Abstract interpretation} is explained and formally defined in~\cite{harmimBP}\,---\,Section~2.1.1. Additional description can be found in~\cite{AILatticeModelCousot, wideningNarrowingCousot, programAnalysisNielson, staticAnalysisRival, staticAnalysisMoller}.}. Despite the original approach taken from~\cite{inferBiabduction}, Facebook Infer aims to find bugs rather than \emph{formal verification}. It can be used to develop new sorts of \emph{compositional} and \emph{incremental} analysers quickly (\emph{intraprocedural} or \emph{interprocedural}~\cite{programAnalysisNielson}) based on the concept of function \emph{summaries}. In general, a~\emph{summary} represents \emph{preconditions} and \emph{postconditions} of a~function~\cite{hoare}. However, in practice, a~summary is a~custom data structure that may be used for storing any information resulting from the analysis of particular functions. Facebook Infer generally does not compute the summaries during the analysis along the \emph{Control Flow Graph} (\textbf{CFG}~\cite{controlFlowAnalysisAllen}) as it is done in classical analyses based on the concepts from~\cite{DFAGraphReach, DFAApproaches}. Instead, Facebook Infer performs the analysis of a~program \emph{function-by-function along the call tree}, starting from its leaves (demonstrated in Example~\ref{ex:inferAnalysis}). Therefore, a~function is analysed, and a~summary is computed without knowledge of the call context. Then, the summary of a~function is used at all of its call sites. Since the summaries do not differ for different contexts, the analysis becomes more scalable, but it can lead to a~loss of accuracy.
+Facebook Infer is a~general framework for static analysis of programs, and it is based on \emph{abstract interpretation}\footnote{\textbf{Abstract interpretation} is formally defined and further explained in~\cite{AILatticeModelCousot, wideningNarrowingCousot, staticAnalysisMoller, programAnalysisNielson, staticAnalysisRival}.}. Despite the original approach taken from~\cite{inferBiabduction}, Facebook Infer aims to find bugs rather than perform \emph{formal verification}. It can be used to quickly develop new sorts of \emph{compositional} and \emph{incremental} analysers (both \emph{intraprocedural} and \emph{interprocedural}~\cite{programAnalysisNielson}) based on the concept of function \emph{summaries}. In general, a~\emph{summary} represents \emph{preconditions} and \emph{postconditions} of a~function~\cite{hoare}. However, in practice, a~summary is a~custom data structure that may be used for storing any information resulting from the analysis of particular functions. Facebook Infer generally does not compute the summaries during the analysis along the \emph{Control Flow Graph} (\textbf{CFG}~\cite{controlFlowAnalysisAllen}) as it is done in classical analyses based on the concepts from~\cite{DFAGraphReach, DFAApproaches}. Instead, Facebook Infer performs the analysis of a~program \emph{function-by-function along the call tree}, starting from its leaves, which will be discussed later on. Therefore, a~function is analysed, and a~summary is computed without knowledge of the call context. Then, the summary of a~function is used at all of its call sites. Since the summaries do not differ for different contexts, the analysis becomes more scalable, but it can lead to a~loss of accuracy.
 
 In order to create a~new intraprocedural analyser in Facebook Infer, it is needed to define the following (the listed items are described in more detail in~\cite{harmimBP}\,---\,Section~2.1.1):
-\vspace{-.5em}
 \begin{enumerate}
-    \item The \emph{abstract domain}~$ \boldsymbol{Q} $, i.e., a~type of an \emph{abstract state}.
+    \item The \emph{abstract domain}~$ \boldsymbol{Q} $, i.e., the type of \emph{abstract states}.
 
     \item The \emph{ordering operator}~$ \sqsubseteq $, i.e., an ordering of abstract states.
 
     \item The \emph{join} operator~$ \sqcup $, i.e., the way of joining two abstract states.
 
-    \item The \emph{widening} operator~$ \triangledown $, i.e., the way how to enforce the termination of the computation.
+    \item The \emph{widening} operator~$ \triangledown $, i.e., the way how to enforce termination of the computation.
 
-    \item The \emph{Transfer functions}~$ \tau $, i.e., a~transformer that takes an abstract state as an input and produces an abstract state as an output.
+    \item The \emph{transfer functions}~$ \tau $, i.e., transformers that take an abstract state as an input and produce an abstract state as an output.
 \end{enumerate}
-\vspace{-.5em}
 Further, to create an interprocedural analyser, it is required to define additionally:
 \begin{enumerate*}[label={(\roman*)}]
-    \item A~type of function summaries~$ \chi $.
+    \item The type of function summaries~$ \chi $.
 
     \item The logic for using summaries in transfer functions and the logic for transforming an intraprocedural abstract state to a~summary.
 \end{enumerate*}
-\vspace{-.5em}
 
-An important feature of Facebook Infer improving its scalability is the \emph{incrementality} of the analysis. It allows one to analyse separate code changes only, instead of analysing the whole codebase. It is more suitable for extensive and variable projects where ordinary analysis is not feasible. The incrementality is based on \emph{reusing summaries} of functions for which there is no change in them neither in the functions transitively invoked from them, as shown in Example~\ref{ex:inferAnalysis}.
+An important feature of Facebook Infer, which improves its scalability, is the \emph{incrementality} of the analysis. It allows one to analyse separate code changes only, instead of analysing the whole codebase. It is more suitable for extensive and variable projects where ordinary analysis is not feasible. The incrementality is based on \emph{reusing summaries} of functions for which there is no change in them neither in the functions transitively invoked from them, as shown in Example~\ref{ex:inferAnalysis}.
 
 \subsection{Architecture of the Infer AI}
 \label{sec:fbinferArch}
 
-The architecture of the abstract interpretation framework of Facebook Infer (\textbf{Infer AI}) may be split into three major parts, as demonstrated in Figure~\ref{fig:inferArch}: a~\emph{frontend}, an \emph{analysis scheduler} (and a~\emph{results database}), and a~set of \emph{analyser plugins}.
+The architecture of the abstract interpretation framework of Facebook Infer (\textbf{Infer AI}) may be split into three major parts, as demonstrated in Figure~\ref{fig:inferArch}: the \emph{frontend}, an \emph{analysis scheduler} (and the \emph{results database}), and a~set of \emph{analyser plugins}.
 
 \begin{figure}[hbt]
     \centering
@@ -205,9 +211,9 @@ The next part of the architecture is the scheduler, which defines the order of t
 \begin{example}
     \label{ex:inferAnalysis}
 \end{example}
-\vspace{-.49em}
+\vspace{-.5em}
 \noindent
-For demonstrating the order of the analysis in Facebook Infer and its incrementality, assume a~call graph given in Figure~\ref{fig:inferCallGraph}. At first, leaf functions \texttt{F5} and \texttt{F6} are analysed. Further, the analysis goes on towards the root of the call graph\,---\,\texttt{F\textsubscript{MAIN}}, while considering the dependencies denoted by the edges. This order
+For demonstrating the order of the analysis in Facebook Infer and its incrementality, assume the call graph given in Figure~\ref{fig:inferCallGraph}. At first, leaf functions \texttt{F5} and \texttt{F6} are analysed. Further, the analysis goes on towards the root of the call graph\,---\,\texttt{F\textsubscript{MAIN}}, while considering the dependencies denoted by the edges. This order
 \begin{wrapfigure}{r}{.42 \linewidth}
     \centering
     \vspace{-1em}
@@ -217,14 +223,7 @@ For demonstrating the order of the analysis in Facebook Infer and its incrementa
 \end{wrapfigure}
 ensures that a~summary is available once a~nested function call is abstractly interpreted within the analysis. When there is a~subsequent code change, only directly changed functions and all the functions up the call path are re-analysed. For instance, if there is a~change of source code of function \texttt{F4}, Facebook Infer triggers reanalysis of functions \texttt{F4}, \texttt{F2}, and \texttt{F\textsubscript{MAIN}} only.
 
-The last part of the architecture consists of a~set of analyser plugins. Each plugin performs some analysis by interpreting SIL instructions. The result of the analysis of each function (function summary) is stored in the results database. The interpretation of SIL instructions (\emph{commands}) is made using the \emph{abstract interpreter} (also called the \emph{control interpreter}) and \emph{transfer functions} (also called the \emph{command interpreter}). The transfer functions take a~previously generated \emph{abstract state} of an analysed function as an input, and by applying the interpreting command, produce a~new abstract state. The abstract interpreter interprets the command in an \emph{abstract domain} according to the CFG. This workflow is shown in a~simplified form in Figure~\ref{fig:inferAnalysis}.
-
-\begin{figure}[hbt]
-    \centering
-    \includegraphics[width=.8 \linewidth]{infer-analysis.pdf}
-    \caption{Facebook Infer's abstract interpretation process~\cite{harmimBP}}
-    \label{fig:inferAnalysis}
-\end{figure}
+The last part of the architecture consists of a~set of analyser plugins. Each plugin performs some analysis by interpreting SIL instructions. The result of the analysis of each function (function summary) is stored in the results database. The interpretation of SIL instructions (\emph{commands}) is made using the \emph{abstract interpreter} (also called the \emph{control interpreter}) and \emph{transfer functions} (also called the \emph{command interpreter}). The transfer functions take a~previously generated \emph{abstract state} of an analysed function as an input, and by applying the interpreting command, produce a~new abstract state. The abstract interpreter interprets the command in an \emph{abstract domain} according to the CFG.
 
 
 %===============================================================================
@@ -236,13 +235,11 @@ This section introduces the principles of the \emph{static analyser Atomer} prop
 Atomer concentrates on checking the \emph{atomicity of the execution of certain sequences of function calls}, which is often required for \emph{concurrent programs'} correct behaviour. Atomer's principle is based on the assumption that sequences of function calls executed \emph{atomically once} should probably be executed \emph{always atomically}.
 
 The proposal of Atomer is based on \emph{basic contracts for concurrency}~\cite{harmimBP, contracts2017}. These allow one to define \emph{sequences of functions} required to be \emph{executed atomically}. Atomer can automatically derive candidates for such contracts and then verify whether the contracts are fulfilled. Both of these steps are done statically. The proposed analysis is divided into two parts (\emph{phases of the analysis}):
-\vspace{-.5em}
 \begin{enumerate}[label={\textbf{Phase~\arabic*}:}, leftmargin=4.2em]
     \item Detection of (likely) \emph{atomic sequences}.
 
     \item Detection of \emph{atomicity violations} (violations of the atomic sequences).
 \end{enumerate}
-\vspace{-.5em}
 The phases are in depth described in the sections below. Moreover, these phases of the analysis and its workflow are illustrated in Figure~\ref{fig:atomerPhasesSequences}.
 
 \begin{figure}[hbt]
@@ -261,13 +258,11 @@ This section describes the proposal of Atomer in general. The concrete types of 
 The detection of sequences of calls to be executed atomically is based on analysing all paths through the CFG of a~function and generating all pairs $ {(A, B)} \in {\Sigma^* \times \Sigma^*} $ (where~$ \Sigma^* $ is a~set of all possible sequences of functions from~$ \Sigma $ in a~given program) of \emph{reduced sequences}~\cite{harmimBP} of function calls for each path such that: Here, $ A $ is a~reduced sequence of function calls that appear between the beginning of the function being analysed and the first lock; between an unlock and a~subsequent lock; or between an unlock and the end of the function being analysed. $ B $ is a~reduced sequence of function calls that follow the calls from~$ A $ and that appear between a~lock and an unlock (or between a~lock and the end of the function being analysed). Thus, the \emph{abstract state} $ s \in \boldsymbol{Q} $ is defined as $ 2^{2^{\Sigma^* \times \Sigma^*}} $ (because there is a~set of the ${ (A, B) }$ pairs for each program path).
 
 The \emph{summary}~$ \chi_\mathtt{f} \in 2^{\Sigma^*} \times \Sigma^* $ of a~function~\texttt{f} is then defined as $ \chi_\mathtt{f} = (\boldsymbol{B}, AB) $, where:
-\vspace{-.5em}
 \begin{itemize}
     \item $ \boldsymbol{B} $ is a~set constructed that contains all the~$ B $ sequences that appear on program paths through~\texttt{f}. In other words, this component of the summary is a~set of sequences of atomic function calls appearing in an analysed function.
 
     \item $ AB $ is a~\emph{concatenation} of all the~$ A $ and~$ B $ sequences with removed duplicates of function calls. In particular, assume that there is the following computed set of ${ (A, B) }$ pairs: $ \{{(A_1, B_1)}, \allowbreak {(A_2, B_2)}, \ldots, {(A_n, B_n)}\} $, then the result is concatenated sequence $ A_1 \cdot B_1 \cdot A_2 \cdot B_2 \cdot \ldots \cdot A_n \cdot B_n $ with removed duplicates. Intuitively, in this component of the summary, it is gathered occurrences of all called functions within an analysed function obtained by concatenation of all the~$ A $ and~$ B $ sequences. $ AB $ is recorded to analyse functions higher in the \emph{call hierarchy} since locks/unlocks can appear in such a~\emph{higher-level} function.
 \end{itemize}
-\vspace{-1em}
 
 \begin{example}
     For instance, the analysis of the function~\texttt{f} from Listing~\ref{list:atomerPhase1} produces the following sequences:
@@ -285,8 +280,7 @@ void f() {
     x(); x(); y();
     <@\textcolor{red}{lock}@>(&L); // (a, b)
     a(); b(); b();
-    <@\textcolor{red}{unlock}@>(&L);
-}
+    <@\textcolor{red}{unlock}@>(&L); }
 \end{lstlisting}
 
 The derived sequences of calls assumed to execute atomically\,---\,the~$ \boldsymbol{B} $ sequences\,---\,from the summaries of all analysed functions are stored into a~file used during \textbf{Phase~2}, which is described below.
@@ -309,12 +303,10 @@ An element of this phase's \emph{abstract state} is a~triple $ {(\mathtt{x}, \ma
 void f() {
     <@\textcolor{red}{lock}@>(&L); // (a, b, c)
     a(); b(); c();
-    <@\textcolor{red}{unlock}@>(&L);
-}
+    <@\textcolor{red}{unlock}@>(&L); }
 void g() {
     // <@\textcolor{red}{ATOMICITY\_VIOLATION:}@> (b, c)
-    x(); b(); c(); y();
-}
+    x(); b(); c(); y(); }
 \end{lstlisting}
 
 The sets of atomicity violations~$ \Delta $ from individual functions are the final reported atomicity violations seen by a~user.
@@ -354,14 +346,12 @@ void f() {
     a(); b();
     <@\textcolor{red}{lock}@>(&L); // (x, y) -> {x, y}
     x(); y();
-    <@\textcolor{red}{unlock}@>(&L);
-}
+    <@\textcolor{red}{unlock}@>(&L); }
 void g() {
     b(); a();
     <@\textcolor{red}{lock}@>(&L); // (y, x) -> {x, y}
     y(); x();
-    <@\textcolor{red}{unlock}@>(&L);
-}
+    <@\textcolor{red}{unlock}@>(&L); }
 \end{lstlisting}
 
 \emph{Detecting violations of atomicity} works almost the same way as before the approximation. There is only one difference. Before, it was detected violations of atomic sequences obtained from \textbf{Phase~1}. Now, \textbf{atomic sets} are obtained; hence, the detection of violations of atomic sets is performed. It is needed to propose a~new algorithm that derives pairs of function calls (from the atomic sets) to be checked for atomicity. To obtain the pairs, it is taken a~union of sets containing all \emph{2-element variations} of single atomic sets (i.e., all possible pairs).
