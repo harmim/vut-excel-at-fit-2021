@@ -58,8 +58,8 @@
     labelsep=period,
     justification=raggedright
 ]{caption}
-\setlength{\abovecaptionskip}{4pt}
-\setlength{\belowcaptionskip}{-10pt}
+\setlength{\abovecaptionskip}{1pt}
+\setlength{\belowcaptionskip}{-12pt}
 
 %===============================================================================
 % PAGE HEADER
@@ -174,7 +174,7 @@
 
 \RequirePackage[inline]{enumitem}
 %\setlist{nolistsep} % Uncomment to remove spacing between items in lists (enumerate, itemize)
-\setlist{noitemsep}
+\setlist{noitemsep, topsep=-.5em, after=\vspace{.5em}}
 
 %===============================================================================
 % ABSTRACT + AUTHOR FRAME
@@ -192,7 +192,7 @@
 \HaveTeaserfalse
 
 \newcommand{\Teaser}[1]{\global\HaveTeasertrue\def\@Teaser{#1}}
-\newcommand{\TeaserImage}[1]{\includegraphics[height=.8in]{#1}}
+\newcommand{\TeaserImage}[1]{\includegraphics[height=.7in]{#1}}
 
 % SUPPLEMENTARY
 \newif\ifHaveSupplementary
