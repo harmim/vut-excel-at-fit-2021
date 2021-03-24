@@ -386,11 +386,28 @@ One of the main reasons that Atomer reports \emph{false alarms} is that in \emph
     
     \item a~list of functions whose calls will not be considered;
     
-    \item a~list of functions whose calls will be considered (and all other function calls will not be).
+    \item and a~list of functions whose calls will be considered (and all other function calls will not be).
 \end{enumerate*}
 It is possible to combine these parameters, and they can be enabled for individual phases of the analysis. The parameters are proposed to be file names of readable text files containing one function name per line. Moreover, suppose the line starts with character \texttt{R} followed by a~whitespace. In that case, the function name is considered a~\emph{regular expression} so that several function names could be taken into account at once.
 
-\todo{TODO}
+Another issue is that in an analysed program, there could be \uv{large} critical sections or critical sections in which appear function calls with a~\emph{deep hierarchy of nested function calls}. Both cases could cause massive and \uv{imprecise} atomic sets that are the source of false alarms.
+
+To resolve the problem of large critical sections, input parameter $ p \in \mathbb{N} $ is proposed. During the first phase of the analysis, from the ${ (A, B) }$ pairs, there are removed such pairs where $ |B| > p $, i.e., removed such pairs where the number of functions in the set~$ B $ (functions called atomically) is greater than the limit~$ p $.
+
+During the first phase, when calling an already analysed \emph{nested function}, the $ AB $ set (i.e., the set of all called functions within a~function) from its summary is used. If there is a~deep hierarchy of nested function calls, at the top level of the hierarchy, there are used function calls from all lower-level functions, leading to large critical sections. To avoid this problem, the summary $ \chi = {(\boldsymbol{B}, AB)} \in 2^{2^\Sigma} \times 2^\Sigma $ in \textbf{Phase~1} is redefined as $ 2^{2^\Sigma} \times 2^{\mathbb{N}_0 \times 2^\Sigma} $, i.e., $ AB $ is no longer a~set of all functions called within an analysed function. It is a~set of pairs where each pair represents called functions at a~particular level in the hierarchy of a~nested function (0~means the top-level). For instance, the summary $ \chi_\mathtt{f} = (\emptyset, \{{(0, \{\mathtt{a, b}\})}, {(1, \{\mathtt{x, y}\})}\}) $ of a~function~\texttt{f} means that there were called functions \texttt{a, b} in~\texttt{f} and that there were called functions \texttt{x, y} in functions one level lower in the call tree (i.e., in functions directly invoked from~\texttt{f}). During the analysis, the summaries are forwarded among functions in the call hierarchy, and stored function calls are merged in appropriate levels. Furthermore, the input parameter $ r \in \mathbb{N}_0 $ is proposed to limit the number of levels considered during analysing nested functions.
+
+\begin{example}
+    Assume function \texttt{f, g, h} from Listing~\ref{list:atomerDeepParam}. Their summaries for the first phase are as follows: $ \chi_\mathtt{h} = (\emptyset, \{(0, \{\mathtt{x, y}\})\}) $, $ \chi_\mathtt{g} = (\emptyset, \{(0, \{\mathtt{c, d, h}\}), \allowbreak (1, \{\mathtt{x, y}\})\}) $, $ \chi_\mathtt{f} = (\emptyset, \{(0, \{\mathtt{a, b, g}\}), (1, \{\mathtt{c, d, h}\}), (2, \allowbreak \{x, y\})\}) $. When the parameter $ r = 1 $ is used, the summary of the function~\texttt{f} changes as follows: $ \chi_\mathtt{f}^\prime = (\emptyset, \{(0, \{\mathtt{a, b, g}\}), (1, \{\mathtt{c, d, h}\})\}) $.
+\end{example}
+
+\begin{lstlisting}[
+    style=c, label={list:atomerDeepParam}, float=hbt,
+    caption={A~code snippet used to illustrate the limitation of considered nested functions}
+]
+void h() { x(); y(); }
+void g() { c(); h(); d(); }
+void f() { a(); g(); b(); }
+\end{lstlisting}
 
 
 %===============================================================================
