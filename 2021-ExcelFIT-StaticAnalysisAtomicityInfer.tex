@@ -41,7 +41,8 @@
     captionpos=b,
     tabsize=4,
     keepspaces=true,
-    belowskip=-1.2\baselineskip
+    belowskip=-1.1\baselineskip,
+    aboveskip=.2\baselineskip
 }
 
 \lstdefinestyle{c}{
@@ -223,53 +224,44 @@ For demonstrating the order of the analysis in Facebook Infer and its incrementa
 \end{wrapfigure}
 ensures that a~summary is available once a~nested function call is abstractly interpreted within the analysis. When there is a~subsequent code change, only directly changed functions and all the functions up the call path are re-analysed. For instance, if there is a~change of source code of function \texttt{F4}, Facebook Infer triggers reanalysis of functions \texttt{F4}, \texttt{F2}, and \texttt{F\textsubscript{MAIN}} only.
 
-The last part of the architecture consists of a~set of analyser plugins. Each plugin performs some analysis by interpreting SIL instructions. The result of the analysis of each function (function summary) is stored in the results database. The interpretation of SIL instructions (\emph{commands}) is made using the \emph{abstract interpreter} (also called the \emph{control interpreter}) and \emph{transfer functions} (also called the \emph{command interpreter}). The transfer functions take a~previously generated \emph{abstract state} of an analysed function as an input, and by applying the interpreting command, produce a~new abstract state. The abstract interpreter interprets the command in an \emph{abstract domain} according to the CFG.
+The last part of the architecture consists of analyser plugins. Each plugin performs some analysis by interpreting SIL instructions. The result of the analysis of each function (function summary) is stored in the results database. The interpretation of SIL instructions (\emph{commands}) is made using the \emph{abstract interpreter} (also called the \emph{control interpreter}) and \emph{transfer functions} (also called the \emph{command interpreter}). The transfer functions take a~previously generated \emph{abstract state} of an analysed function as an input, and by applying the interpreting command, produce a~new abstract state. The abstract interpreter interprets the command in an \emph{abstract domain} according to the CFG.
 
 
 %===============================================================================
 \section{\hspace{-.15em}Atomer: Atomicity Violations Detector}
 \label{sec:atomer}
 
-This section introduces the principles of the \emph{static analyser Atomer} proposed as a~module of \emph{Facebook Infer} for finding some forms of \emph{atomicity violations}. Atomer was proposed and in detail described in the bachelor's thesis of the author of this paper~\cite{harmimBP}. Therefore, naturally, the following description is based on the mentioned thesis.
+This section introduces the principles of the basic version of the \emph{Atomer static analyser} for finding some forms of \emph{atomicity violations} proposed in the bachelor's thesis~\cite{harmimBP} of the author of this paper. Therefore, naturally, the following description is based on the mentioned thesis.
 
-Atomer concentrates on checking the \emph{atomicity of the execution of certain sequences of function calls}, which is often required for \emph{concurrent programs'} correct behaviour. Atomer's principle is based on the assumption that sequences of function calls executed \emph{atomically once} should probably be executed \emph{always atomically}.
-
-The proposal of Atomer is based on \emph{basic contracts for concurrency}~\cite{harmimBP, contracts2017}. These allow one to define \emph{sequences of functions} required to be \emph{executed atomically}. Atomer can automatically derive candidates for such contracts and then verify whether the contracts are fulfilled. Both of these steps are done statically. The proposed analysis is divided into two parts (\emph{phases of the analysis}):
+Atomer concentrates on checking the \emph{atomicity of the execution of certain sequences of function calls}, which is often required for \emph{concurrent programs'} correct behaviour. In principle, Atomer is based on the assumption that sequences of function calls executed \emph{atomically once} should probably be executed \emph{always atomically}. Atomer can both automatically derive those sequences that are sometimes executed atomically as well as subsequently check whether they are always executed atomically. Both of these steps are done statically. The proposed analysis is thus divided into two parts (\emph{phases of the analysis} that are in-depth described in the sections below):
 \begin{enumerate}[label={\textbf{Phase~\arabic*}:}, leftmargin=4.2em]
     \item Detection of (likely) \emph{atomic sequences}.
 
     \item Detection of \emph{atomicity violations} (violations of the atomic sequences).
 \end{enumerate}
-The phases are in depth described in the sections below. Moreover, these phases of the analysis and its workflow are illustrated in Figure~\ref{fig:atomerPhasesSequences}.
 
-\begin{figure}[hbt]
-    \centering
-    \includegraphics[width=.8 \linewidth]{analyser-proposal.pdf}
-    \caption{\emph{Phases} of the Atomer's analysis and the analysis \emph{high-level process} illustration}
-    \label{fig:atomerPhasesSequences}
-\end{figure}
-
-This section describes the proposal of Atomer in general. The concrete types of the \emph{abstract states} (i.e., elements of the \emph{abstract domain}~$ \boldsymbol{Q} $) and the \emph{summaries}~$ \chi $, along with the implementation of all necessary \emph{abstract interpretation operators}, are stated in~\cite{harmimBP}. However, actually, the abstract states~$ s \in \boldsymbol{Q} $ of both phases of the analysis are proposed as \emph{sets}. So, in fact, the \emph{ordering operator}~$ \sqsubseteq $ is implemented using testing for a~\emph{subset} (i.e., $ s \sqsubseteq s^\prime \Leftrightarrow s \subseteq s^\prime $, where $ s, s^\prime \in \boldsymbol{Q} $), the \emph{join operator}~$ \sqcup $ is implemented as the \emph{set union} (i.e., $ s \sqcup s^\prime \Leftrightarrow s \cup s^\prime $), and the \emph{widening operator}~$ \triangledown $ is implemented using the join operator (i.e., $ s \triangledown s^\prime \Leftrightarrow s \sqcup s^\prime $).
+This section provides a~high-level view of the \emph{abstract interpretation} underlying Atomer. The abstract states~$ s \in \boldsymbol{Q} $ of both phases of the analysis are proposed as \emph{sets}. So, in fact, the \emph{ordering operator}~$ \sqsubseteq $ is implemented using testing for a~\emph{subset} (i.e., $ s \sqsubseteq s^\prime \Leftrightarrow s \subseteq s^\prime $, where $ s, s^\prime \in \boldsymbol{Q} $), the \emph{join operator}~$ \sqcup $ is implemented as the \emph{set union} (i.e., $ s \sqcup s^\prime \Leftrightarrow s \cup s^\prime $), and the \emph{widening operator}~$ \triangledown $ is implemented using the join operator (i.e., $ s \triangledown s^\prime \Leftrightarrow s \sqcup s^\prime $) since the domains are \emph{finite}.
 
 \subsection{Phase~1: Detection of Atomic Sequences}
 
-\textbf{Phase~1} of Atomer detects \emph{sequences of functions} that should be \emph{executed atomically}. Intuitively, the detection is based on looking for sequences of functions executed atomically on some path through a~program.
+\textbf{Phase~1} of Atomer detects \emph{sequences of functions} that should be \emph{executed atomically}. It is based on looking for sequences executed atomically, in particular, under some lock, on some path through a~program.
 
-The detection of sequences of calls to be executed atomically is based on analysing all paths through the CFG of a~function and generating all pairs $ {(A, B)} \in {\Sigma^* \times \Sigma^*} $ (where~$ \Sigma^* $ is a~set of all possible sequences of functions from~$ \Sigma $ in a~given program) of \emph{reduced sequences}~\cite{harmimBP} of function calls for each path such that: Here, $ A $ is a~reduced sequence of function calls that appear between the beginning of the function being analysed and the first lock; between an unlock and a~subsequent lock; or between an unlock and the end of the function being analysed. $ B $ is a~reduced sequence of function calls that follow the calls from~$ A $ and that appear between a~lock and an unlock (or between a~lock and the end of the function being analysed). Thus, the \emph{abstract state} $ s \in \boldsymbol{Q} $ is defined as $ 2^{2^{\Sigma^* \times \Sigma^*}} $ (because there is a~set of the ${ (A, B) }$ pairs for each program path).
+The detection of such sequences is based on analysing all paths through the CFG of a~function and generating all pairs $ {(A, B)} \in {\Sigma^* \times \Sigma^*} $ (where~$ \Sigma $ is the set of functions of a~given program) of \emph{reduced sequences}\footnote{A~\textbf{reduced sequence} denotes a~sequence in which the first appearance of each function is recorded only.} of function calls for each path such that: $ A $~is a~reduced sequence of function calls that appear between the beginning of the function being analysed and the first lock; between an unlock and a~subsequent lock; or between an unlock and the end of the function being analysed. $ B $ is a~reduced sequence of function calls that follow the calls from~$ A $ and that appear between a~lock and an unlock (or between a~lock and the end of the function being analysed). Thus, the \emph{abstract states} of the analysis are elements of the set $ 2^{2^{\Sigma^* \times \Sigma^*}} $ because there is a~set of the ${ (A, B) }$ pairs for each program path.
 
-The \emph{summary}~$ \chi_\mathtt{f} \in 2^{\Sigma^*} \times \Sigma^* $ of a~function~\texttt{f} is then defined as $ \chi_\mathtt{f} = (\boldsymbol{B}, AB) $, where:
+A~\emph{summary}~$ \chi_\mathtt{f} \in 2^{\Sigma^*} \times \Sigma^* $ of a~function~\texttt{f} is then a~pair $ \chi_\mathtt{f} = (\boldsymbol{B}, AB) $, where:
 \begin{itemize}
-    \item $ \boldsymbol{B} $ is a~set constructed that contains all the~$ B $ sequences that appear on program paths through~\texttt{f}. In other words, this component of the summary is a~set of sequences of atomic function calls appearing in an analysed function.
+    \item $ \boldsymbol{B} $ is a~set constructed such that it contains all the~$ B $ sequences that appear on program paths through~\texttt{f}, i.e., those computed within the ${ (A, B) }$ pairs at the exit of~\texttt{f}. In other words, this component of the summary is a~set of sequences of atomic function calls appearing in~\texttt{f}.
 
-    \item $ AB $ is a~\emph{concatenation} of all the~$ A $ and~$ B $ sequences with removed duplicates of function calls. In particular, assume that there is the following computed set of ${ (A, B) }$ pairs: $ \{{(A_1, B_1)}, \allowbreak {(A_2, B_2)}, \ldots, {(A_n, B_n)}\} $, then the result is concatenated sequence $ A_1 \cdot B_1 \cdot A_2 \cdot B_2 \cdot \ldots \cdot A_n \cdot B_n $ with removed duplicates. Intuitively, in this component of the summary, it is gathered occurrences of all called functions within an analysed function obtained by concatenation of all the~$ A $ and~$ B $ sequences. $ AB $ is recorded to analyse functions higher in the \emph{call hierarchy} since locks/unlocks can appear in such a~\emph{higher-level} function.
+    \item $ AB $ is a~\emph{concatenation} of all the~$ A $ and~$ B $ sequences with removed duplicates of function calls. In particular, assume that the following set of ${ (A, B) }$ pairs is computed at the exit of~\texttt{f}: $ \{{(A_1, B_1)}, {(A_2, B_2)}, \ldots, {(A_n, B_n)}\} $, then the result is the sequence $ A_1 \cdot B_1 \cdot A_2 \cdot B_2 \cdot \ldots \cdot A_n \cdot B_n $ with removed duplicates. Intuitively, in this component of the summary, the analysis gathers occurrences of all called functions within the analysed function. $ AB $ are recorded to facilitate the derivation of atomic call sequences that show up higher in the \emph{call hierarchy}. Indeed, while locks/unlocks can appear in such a~\emph{higher-level} function, parts of the call sequences can appear lower in the call hierarchy.
 \end{itemize}
 
+\vspace{-.5em}
 \begin{example}
     For instance, the analysis of the function~\texttt{f} from Listing~\ref{list:atomerPhase1} produces the following sequences:
     $$
-        \overbrace{\text{\texttt{x,~\sout{x},~y}}}^A~\overbrace{\text{\texttt{[a,~b,~\sout{b}]}}}^B
+        \overbrace{\mathtt{x} \cdot \text{\texttt{\sout{x}}} \cdot \mathtt{y}}^A \overbrace{[\mathtt{a} \cdot \mathtt{b} \cdot \text{\texttt{\sout{b}}}]}^B
     $$
-    The strikethrough of the functions~\texttt{x} and~\texttt{b} denotes removing already recorded function calls in the~$ A $ and~$ B $ sequences. For the above, the abstract state at the end of an interpretation of the function~\texttt{f} is $ s_\mathtt{f} = \{\{((\mathtt{x, y}), (\mathtt{a, b})), (\varepsilon, \varepsilon)\}\} $. The derived summary~$ \chi_\mathtt{f} $ for the function~\texttt{f} is $ \chi_\mathtt{f} = {(\{{(\mathtt{a, b})}\}, {(\mathtt{x, y, a, b})})} $.
+    The strikethrough of the functions~\texttt{x} and~\texttt{b} denotes removing already recorded function calls in the~$ A $ and~$ B $ sequences to get the reduced form. For the above, the abstract state at the end of the abstract interpretation of the function~\texttt{f} is $ s_\mathtt{f} = \{\{(\mathtt{x} \cdot \mathtt{y}, \mathtt{a} \cdot \mathtt{b}), (\varepsilon, \varepsilon)\}\} $. The derived summary~$ \chi_\mathtt{f} $ for the function~\texttt{f} is $ \chi_\mathtt{f} = {(\{{\mathtt{a} \cdot \mathtt{b}}\}, {\mathtt{x} \cdot \mathtt{y} \cdot \mathtt{a} \cdot \mathtt{b}})} $.
 \end{example}
 
 \begin{lstlisting}[
@@ -278,7 +270,7 @@ The \emph{summary}~$ \chi_\mathtt{f} \in 2^{\Sigma^*} \times \Sigma^* $ of a~fun
 ]
 void f() {
     x(); x(); y();
-    <@\textcolor{red}{lock}@>(&L); // (a, b)
+    <@\textcolor{red}{lock}@>(&L); // a.b
     a(); b(); b();
     <@\textcolor{red}{unlock}@>(&L); }
 \end{lstlisting}
@@ -287,13 +279,13 @@ The derived sequences of calls assumed to execute atomically\,---\,the~$ \boldsy
 
 \subsection{\hspace{-.35em}Phase~2: Detection of Atomicity Violations}
 
-In the second phase of the analysis, i.e., when \emph{detecting violations} of the atomic sequences obtained from \textbf{Phase~1}, the analysis looks for \emph{pairs of functions} that \emph{should be called atomically} (or just for single functions if there is only one function call in an atomic sequence) while this is not the case on some path through the CFG. The pairs of function calls to be checked for atomicity are obtained as follows: For each function~\texttt{f} with the \emph{summary}~$ \chi_\mathtt{f} = {(\boldsymbol{B}, AB)} $ in a~given program, it is taken the first component~$ \boldsymbol{B} $ of the summary~$ \chi_\mathtt{f} $, i.e., $ \boldsymbol{B} = {\{B_1, B_2, \ldots, B_n\}} $, and it is taken \emph{every pair} $ {(\mathtt{x}, \mathtt{y})} \in \Sigma \times \Sigma $ of functions that appear as a~\emph{substring} in some of the~$ B_i $ sequences, i.e., $ B_i = w \cdot \mathtt{x} \cdot \mathtt{y} \cdot w^\prime $ for some sequences~$ w, w^\prime $. Note that~\texttt{x} could be~$ \varepsilon $ (an empty sequence) if some~$ B_i $ consists of a~single function. All these \uv{atomic pairs} are put into the set $ \Omega \in 2^{\Sigma \times \Sigma} $.
+In the second phase of the analysis, i.e., when \emph{detecting violations} of the atomic sequences obtained from \textbf{Phase~1}, the analysis looks for \emph{pairs of functions} that \emph{should be called atomically} (or just for single functions if there is only one function call in an atomic sequence) and that are not executed atomically (i.e., under a~lock) on some path through the CFG. The pairs of function calls to be checked for atomicity are obtained as follows: For each function~\texttt{f} with a~\emph{summary}~$ \chi_\mathtt{f} = {(\boldsymbol{B}, AB)} $ in a~given program, where $ \boldsymbol{B} = {\{B_1, B_2, \ldots, B_n\}} $, the analysis considers \emph{every pair} $ {(\mathtt{x}, \mathtt{y})} \in \Sigma \times \Sigma $ of functions that appear as a~\emph{substring} in some of the~$ B_i $ sequences, i.e., $ B_i = w \cdot \mathtt{x} \cdot \mathtt{y} \cdot w^\prime $ for some sequences~$ w, w^\prime $. Note that~\texttt{x} could be~$ \varepsilon $ (an empty sequence) if some~$ B_i $ consists of a~single function. All these \uv{atomic pairs} are put into the set $ \Omega \in 2^{\Sigma \times \Sigma} $.
 
-An element of this phase's \emph{abstract state} is a~triple $ {(\mathtt{x}, \mathtt{y}, \Delta)} \in \Sigma \times \Sigma \times 2^{\Sigma \times \Sigma} $, where $ {(\mathtt{x}, \mathtt{y})} $ is a~pair of the most recent function calls, and~$ \Delta $ is a~\emph{set of pairs that violate atomicity}. Thus, the abstract state $ s \in \boldsymbol{Q} $ is defined as $ 2^{\Sigma \times \Sigma \times 2^{\Sigma \times \Sigma}} $. Whenever a~function~\texttt{f} is called, it is created a~new pair ${ (\mathtt{x}^\prime, \mathtt{y}^\prime) }$ of the most recent function calls from the previous pair ${ (\mathtt{x}, \mathtt{y}) }$ (i.e., $ {(\mathtt{x}^\prime, \mathtt{y}^\prime)} = {(\mathtt{y}, \mathtt{f})} $). Further, when the current program state is not inside an \emph{atomic block}, it is checked whether the new pair (or just the last call) violates the atomicity (i.e., $ {(\mathtt{x}^\prime, \mathtt{y}^\prime)} \in \Omega \vee {(\varepsilon, \mathtt{y}^\prime)} \in \Omega $). When it does, it is added to the set~$ \Delta $ of pairs that violate atomicity.
+An element of this phase's \emph{abstract state} is a~triple $ {(\mathtt{x}, \mathtt{y}, \Delta)} \in \Sigma \times \Sigma \times 2^{\Sigma \times \Sigma} $ where $ {(\mathtt{x}, \mathtt{y})} $ is a~pair of the most recent calls of functions performed on the program path being explored, and~$ \Delta $ is a~set of so far detected \emph{pairs that violate atomicity}. Thus, the abstract states are elements of the set $ 2^{\Sigma \times \Sigma \times 2^{\Sigma \times \Sigma}} $. Whenever a~function~\texttt{f} is called on some path that led to an abstract state ${ (\mathtt{x}, \mathtt{y}, \Delta) }$, a~new pair ${ (\mathtt{x}^\prime, \mathtt{y}^\prime) }$ of the most recent function calls is created from the previous pair ${ (\mathtt{x}, \mathtt{y}) }$ such that $ {(\mathtt{x}^\prime, \mathtt{y}^\prime)} = {(\mathtt{y}, \mathtt{f})} $. Further, when the current program state is not inside an \emph{atomic block}, the analysis checks whether the new pair (or just the last call) violates the atomicity (i.e., $ {(\mathtt{x}^\prime, \mathtt{y}^\prime)} \in \Omega \vee {(\varepsilon, \mathtt{y}^\prime)} \in \Omega $). When it does, it is added to the set~$ \Delta $ of pairs that violate atomicity.
 
 \begin{example}
     \sloppy
-    To demonstrate the detection of an atomicity violation, assume the functions~\texttt{f} and~\texttt{g} from Listing~\ref{list:atomerPhase2}. The set of atomic sequences of the function~\texttt{f} with the summary~$ \chi_\mathtt{f} = (\boldsymbol{B}, AB) $ is $ \boldsymbol{B} = \{(\mathtt{a, b, c})\} $, thus $ \Omega = \{{(\mathtt{a, b})}, {(\mathtt{b, c})}\} $. In the function~\texttt{g}, an atomicity violation is detected because the pair of functions~\texttt{b} and~\texttt{c} is not called atomically.
+    To demonstrate the detection of an atomicity violation, assume the functions~\texttt{f} and~\texttt{g} from Listing~\ref{list:atomerPhase2}. The set of atomic sequences of the function~\texttt{f} with the summary~$ \chi_\mathtt{f} = (\boldsymbol{B}, AB) $ is $ \boldsymbol{B} = \{\mathtt{a} \cdot \mathtt{b} \cdot \mathtt{c}\} $, thus $ \Omega = \{{(\mathtt{a, b})}, {(\mathtt{b, c})}\} $. In the function~\texttt{g}, an atomicity violation is detected because the pair of functions~\texttt{b} and~\texttt{c} is not called atomically.
 \end{example}
 
 \begin{lstlisting}[
@@ -301,7 +293,7 @@ An element of this phase's \emph{abstract state} is a~triple $ {(\mathtt{x}, \ma
     caption={Example of an \emph{atomicity violation}}
 ]
 void f() {
-    <@\textcolor{red}{lock}@>(&L); // (a, b, c)
+    <@\textcolor{red}{lock}@>(&L); // a.b.c
     a(); b(); c();
     <@\textcolor{red}{unlock}@>(&L); }
 void g() {
@@ -324,7 +316,7 @@ Regarding \emph{scalability}, Atomer can have problems with more \emph{extensive
 
 In particular, this proposed solution is more scalable because the order of stored function calls is not relevant anymore while working with sets. Therefore, less memory is required because the same sets of function calls are not stored multiple times. The analysis is also faster since there are stored fewer sets of function calls to work with. On the other hand, the analysis is less accurate because the new approach causes some loss of information. In practice, this loss of information could eventually lead to \emph{false alarms}. However, the number of such false alarms should not often be so significant.
 
-The \emph{detection of sequences of calls to be executed atomically} now generates all ${ (A, B) }$ pairs of \emph{sets} of function calls for each path instead of pairs of sequences. I.e., $ {(A, B)} \in 2^\Sigma \times 2^\Sigma $. The semantics of the pairs is preserved. So, the \emph{abstract state} $ s \in \boldsymbol{Q} $ is redefined as $ 2^{2^{2^\Sigma \times 2^\Sigma}} $. In all the implemented algorithms and definitions, it is sufficient to work with:
+The \emph{detection of sequences of calls to be executed atomically} now generates all ${ (A, B) }$ pairs of \emph{sets} of function calls for each path instead of pairs of sequences. I.e., $ {(A, B)} \in 2^\Sigma \times 2^\Sigma $. The semantics of the pairs is preserved. So, the \emph{abstract states} are elements of the set $ 2^{2^{2^\Sigma \times 2^\Sigma}} $. In all the implemented algorithms and definitions, it is sufficient to work with:
 \begin{enumerate*}[label={(\roman*)}]
     \item \emph{sets}~$ 2^\Sigma $ of functions, instead of \emph{sequences}~$ \Sigma^* $ of functions;
 
@@ -344,12 +336,12 @@ Consequently, also the summary is redefined as $ \chi \in 2^{2^\Sigma} \times 2^
 ]
 void f() {
     a(); b();
-    <@\textcolor{red}{lock}@>(&L); // (x, y) -> {x, y}
+    <@\textcolor{red}{lock}@>(&L); // x.y -> {x, y}
     x(); y();
     <@\textcolor{red}{unlock}@>(&L); }
 void g() {
     b(); a();
-    <@\textcolor{red}{lock}@>(&L); // (y, x) -> {x, y}
+    <@\textcolor{red}{lock}@>(&L); // y.x -> {x, y}
     y(); x();
     <@\textcolor{red}{unlock}@>(&L); }
 \end{lstlisting}
