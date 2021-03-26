@@ -174,7 +174,11 @@
 
 \RequirePackage[inline]{enumitem}
 %\setlist{nolistsep} % Uncomment to remove spacing between items in lists (enumerate, itemize)
-\setlist{noitemsep, topsep=-.5em, after=\vspace{.5em}}
+\setlist[enumerate]{noitemsep, topsep=-.5em, after=\vspace{.5em}}
+\setlist[itemize]{noitemsep, topsep=-.5em, after=\vspace{.5em}}
+
+\newlist{enuminline}{enumerate*}{1}
+\setlist[enuminline]{label={(\roman*)}}
 
 %===============================================================================
 % ABSTRACT + AUTHOR FRAME
