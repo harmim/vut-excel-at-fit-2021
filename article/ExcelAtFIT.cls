@@ -56,7 +56,7 @@
 \RequirePackage[
     labelfont={bf, sf, small},
     labelsep=period,
-    justification=raggedright
+    justification=justified
 ]{caption}
 \setlength{\abovecaptionskip}{1pt}
 \setlength{\belowcaptionskip}{-12pt}
@@ -113,10 +113,10 @@
   {}
   {0em}
   {#1}
-\titlespacing*{\section}{0pc}{3ex \@plus4pt \@minus3pt}{5pt}
-\titlespacing*{\subsection}{0pc}{2.5ex \@plus3pt \@minus2pt}{1pt}
-\titlespacing*{\subsubsection}{0pc}{2ex \@plus2.5pt \@minus1.5pt}{0pt}
-\titlespacing*{\paragraph}{0pc}{1.5ex \@plus2pt \@minus1pt}{10pt}
+\titlespacing*{\section}{0pc}{1.5ex \@plus4pt \@minus3pt}{5pt}
+\titlespacing*{\subsection}{0pc}{1ex \@plus3pt \@minus2pt}{1pt}
+\titlespacing*{\subsubsection}{0pc}{1ex \@plus2.5pt \@minus1.5pt}{0pt}
+\titlespacing*{\paragraph}{0pc}{1ex \@plus2pt \@minus1pt}{10pt}
 
 %===============================================================================
 % TABLE OF CONTENTS SET-UP
