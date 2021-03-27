@@ -11,6 +11,8 @@
 \usepackage{wrapfig}
 \usepackage[normalem]{ulem}
 \usepackage{mathtools}
+\usepackage{natbib}
+\usepackage{etoolbox}
 
 % Solves first/last row of the paragraph on the previous/next page.
 \clubpenalty=10000
@@ -79,7 +81,7 @@
     pdftitle={Advanced Static Analysis of Atomicity in Concurrent Programs through Facebook Infer},
     pdfauthor={Dominik Harmim <xharmi00@stud.fit.vutbr.cz>},
     pdfsubject={Excel@FIT 2021 Paper},
-    pdfkeywords={Facebook Infer, Static Analysis, Abstract Interpretation, Atomicity Violation, Contracts for Concurrency, Concurrent Programs, Program Analysis, Atomicity, Atomer, Incremental Analysis, Modular Analysis, Compositional Analysis, Interprocedural Analysis}%
+    pdfkeywords={Facebook Infer, Static Analysis, Abstract Interpretation, Atomicity Violation, Contracts for Concurrency, Concurrent Programs, Program Analysis, Atomicity, Atomer}%
 }
 
 
@@ -96,7 +98,7 @@
     \textit{Faculty of Information Technology, Brno University of Technology}%
 }
 
-\Keywords{Facebook Infer\,---\,Static Analysis\,---\,Abstract Interpretation\,---\,Atomicity Violation\,---\,Contracts for Concurrency\,---\,Concurrent Programs\,---\,Program Analysis\,---\,Atomicity\,---\,Atomer\,---\,Incremental Analysis\,---\,Modular Analysis\,---\,Compositional Analysis\,---\,Interprocedural Analysis}
+\Keywords{Facebook Infer\,---\,Static Analysis\,---\,Abstract Interpretation\,---\,Atomicity Violation\,---\,Contracts for Concurrency\,---\,Concurrent Programs\,---\,Program Analysis\,---\,Atomicity\,---\,Atomer}
 
 \Supplementary{%
     \href{https://github.com/harmim/infer}{Atomer Repository}%
@@ -122,6 +124,9 @@
 % spacing around math mode
 \setlength{\abovedisplayskip}{.3em}
 \setlength{\belowdisplayskip}{.3em}
+
+% vspace before footnote
+\addtolength{\skip\footins}{-.3em}
 
 
 \startdocument
@@ -152,26 +157,26 @@ void replace(int a, int b) {
     if (i >= 0) array.set(i, b); }
 \end{lstlisting}
 
-Within this work, Atomer has been significantly improved and extended. In particular, to improve scalability, working with sequences of function calls was \emph{approximated} by working with \emph{sets of function calls}. Furthermore, several new features were implemented, notably: support for \emph{C++ and Java languages}, including various advanced kinds of locks these languages offer (such \emph{re-entrant locks} or \emph{lock guards}); or a~more precise way of \emph{distinguishing between different lock instances}. Moreover, the analysis has been \emph{parameterised} by function names to concentrate on during the analysis and limits of the number of functions in \emph{critical sections}. Lastly, new experiments were performed to test the Atomer's capabilities.
+Within this work, Atomer has been significantly improved and extended. In particular, to improve scalability, working with sequences of function calls was \emph{approximated} by working with \emph{sets of function calls}. Furthermore, several new features were implemented, notably: support for \emph{C++ and Java languages}, including various advanced kinds of locks these languages offer (such \emph{re-entrant locks} or \emph{lock guards}); or a~more precise way of \emph{distinguishing between different lock instances}. Moreover, the analysis has been \emph{parameterised} by function names to concentrate on during the analysis and limits of the number of functions in \emph{critical sections}. These parameters aim to reduce the number of false alarms. Their proposal is based on the author's analysis of false alarms produced by the first Atomer's version. Lastly, new experiments were performed to test capabilities of the new version of Atomer.
 
 The development of the original Atomer started under the H2020 ECSEL project Aquas. The development of its new version is supported by the H2020 ECSEL project Arrowhead Tools. The development has been discussed with the developers of Facebook Infer too. Parts of the paper concerning the Facebook Infer framework and the basic version of Atomer are partially taken from the thesis~\cite{harmimBP}.
 
-The rest of the article is organised as follows. In Section~\ref{sec:infer}, there is introduced the \emph{Facebook Infer} framework. \emph{Atomer} is described in Section~\ref{sec:atomer}. Subsequently, Section~\ref{sec:proposal} presents all the proposed extensions and improvements. The implementation of these extensions, together with the experimental evaluation of the new Atomer's features and other experiments performed within this work, are discussed in Section~\ref{sec:exp}. Finally, the paper is concluded in Section~\ref{sec:conc}.
+The rest of the article is organised as follows. In Section~\ref{sec:infer}, there is introduced the \emph{Facebook Infer} framework. The original version of \emph{Atomer} is described in Section~\ref{sec:atomer}. Subsequently, Section~\ref{sec:proposal} presents all the proposed extensions and improvements. The implementation of these extensions, together with the experimental evaluation of the new Atomer's features and other experiments performed within this work, are discussed in Section~\ref{sec:exp}. Finally, the paper is concluded in Section~\ref{sec:conc}.
 
 
 %===============================================================================
 \section{Facebook Infer}
 \label{sec:infer}
 
-This section describes the principles and features of \emph{Facebook Infer}. The description is based on information provided at the Facebook Infer's website\footnote{\textbf{Facebook Infer's} website: \url{https://fbinfer.com}.} and in~\cite{inferAISpeech}. Parts of this section are taken from~\cite{harmimBP}.
+This section describes the principles and features of \emph{Facebook Infer}. The description is based on information provided at the Facebook Infer's website\footnote{\textbf{Facebook Infer's} website: \url{https://fbinfer.com}.}. Parts of this section are taken from~\cite{harmimBP}.
 
 Facebook Infer is an \emph{open-source}\footnote{A~link to the \textbf{Facebook Infer's open-source repository} is in the supplementary materials of the paper.} \emph{static analysis framework}\footnote{For an explanation of the general meaning of \textbf{static analysis}, see, e.g., \cite{staticAnalysisMoller, programAnalysisNielson, staticAnalysisRival}.}, which can discover various kinds of software bugs and which stress the \emph{scalability} of the analysis. A~more detailed explanation of Facebook Infer architecture is given in Section~\ref{sec:fbinferArch}. Facebook Infer is implemented in \emph{OCaml}\,---\,a~\emph{functional} programming language, also supporting \emph{imperative} and \emph{object-oriented} paradigms. Infer has initially been a~rather specialised tool focused on \emph{sound verification} of the absence of \emph{memory safety violations}, which was first published in the well-known paper~\cite{inferBiabduction}. Once Facebook has purchased it, its scope significantly widened and abandoned the focus on sound analysis only.
 
-Facebook Infer can analyse programs written in several languages. In particular, it supports the following languages: C, C++, Java, and Objective-C (as well as C\#, see~\cite{inferCSharp}). Moreover, it is possible to extend Facebook Infer's \emph{frontend} for supporting other languages. Currently, Facebook Infer contains many analyses focusing on various kinds of bugs, e.g., \emph{Inferbo} (buffer overruns); \emph{RacerD} (data races)~\cite{racerD, staticRaceDetectorTruePositives}; and other analyses that check for buffer overflows, some forms of deadlocks and starvation, null-dereferencing, memory leaks, resource leaks, etc.
+Facebook Infer can analyse programs written in several languages. In particular, it supports the following languages: C, C++, Java, Objective-C, and C\#. Moreover, it is possible to extend Facebook Infer's \emph{frontend} for supporting other languages. Currently, Facebook Infer contains many analyses focusing on various kinds of bugs, e.g., \emph{Inferbo} (buffer overruns); \emph{RacerD} (data races)~\cite{racerD}; and other analyses that check for buffer overflows, some forms of deadlocks and starvation, null-dereferencing, memory leaks, resource leaks, etc.
 
 \subsection{Abstract Interpretation in Facebook Infer}
 
-Facebook Infer is a~general framework for static analysis of programs, and it is based on \emph{abstract interpretation}\footnote{\textbf{Abstract interpretation} is formally defined and further explained in~\cite{AILatticeModelCousot, wideningNarrowingCousot, staticAnalysisMoller, programAnalysisNielson, staticAnalysisRival}.}. Despite the original approach taken from~\cite{inferBiabduction}, Facebook Infer aims to find bugs rather than perform \emph{formal verification}. It can be used to quickly develop new sorts of \emph{compositional} and \emph{incremental} analysers (both \emph{intraprocedural} and \emph{interprocedural}~\cite{programAnalysisNielson}) based on the concept of function \emph{summaries}. In general, a~\emph{summary} represents \emph{preconditions} and \emph{postconditions} of a~function~\cite{hoare}. However, in practice, a~summary is a~custom data structure that may be used for storing any information resulting from the analysis of particular functions. Facebook Infer generally does not compute the summaries during the analysis along the \emph{Control Flow Graph} (\textbf{CFG}~\cite{controlFlowAnalysisAllen}) as it is done in classical analyses based on the concepts from~\cite{DFAGraphReach, DFAApproaches}. Instead, Facebook Infer performs the analysis of a~program \emph{function-by-function along the call tree}, starting from its leaves, which will be discussed later on. Therefore, a~function is analysed, and a~summary is computed without knowledge of the call context. Then, the summary of a~function is used at all of its call sites. Since the summaries do not differ for different contexts, the analysis becomes more scalable, but it can lead to a~loss of accuracy.
+Facebook Infer is a~general framework for static analysis of programs, and it is based on \emph{abstract interpretation}\footnote{\textbf{Abstract interpretation} is formally defined and further explained in~\cite{AILatticeModelCousot, staticAnalysisMoller, programAnalysisNielson, staticAnalysisRival}.}. Despite the original approach taken from~\cite{inferBiabduction}, Facebook Infer aims to find bugs rather than perform \emph{formal verification}. It can be used to quickly develop new sorts of \emph{compositional} and \emph{incremental} analysers (both \emph{intraprocedural} and \emph{interprocedural}~\cite{programAnalysisNielson}) based on the concept of function \emph{summaries}. In general, a~\emph{summary} represents \emph{preconditions} and \emph{postconditions} of a~function~\cite{hoare}. However, in practice, a~summary is a~custom data structure that may be used for storing any information resulting from the analysis of particular functions. Facebook Infer generally does not compute the summaries during the analysis along the \emph{Control Flow Graph} (\textbf{CFG}~\cite{controlFlowAnalysisAllen}) as it is done in classical analyses based on the concepts from~\cite{DFAGraphReach, DFAApproaches}. Instead, Facebook Infer performs the analysis of a~program \emph{function-by-function along the call tree}, starting from its leaves, which will be discussed later on. Therefore, a~function is analysed, and a~summary is computed without knowledge of the call context. Then, the summary of a~function is used at all of its call sites. Since the summaries do not differ for different contexts, the analysis becomes more scalable, but it can lead to a~loss of accuracy.
 
 In order to create a~new intraprocedural analyser in Facebook Infer, it is needed to define the following (the listed items are described in more detail in~\cite{harmimBP}\,---\,Section~2.1.1):
 \begin{enumerate}
@@ -215,7 +220,6 @@ The next part of the architecture is the scheduler, which defines the order of t
 \end{example}
 \vspace{-.5em}
 \noindent
-For demonstrating the order of the analysis in Facebook Infer and its incrementality, assume the call graph given in Figure~\ref{fig:inferCallGraph}. At first, leaf functions \texttt{F5} and \texttt{F6} are analysed. Further, the analysis goes on towards the root of the call graph\,---\,\texttt{F\textsubscript{MAIN}}, while considering the dependencies denoted by the edges. This order
 \begin{wrapfigure}{r}{.42 \linewidth}
     \centering
     \vspace{-1em}
@@ -223,7 +227,7 @@ For demonstrating the order of the analysis in Facebook Infer and its incrementa
     \captionof{figure}{A~call graph for an illustration of Facebook Infer's analysis process~\cite{harmimBP}}
     \label{fig:inferCallGraph}
 \end{wrapfigure}
-ensures that a~summary is available once a~nested function call is abstractly interpreted within the analysis. When there is a~subsequent code change, only directly changed functions and all the functions up the call path are re-analysed. For instance, if there is a~change of source code of function \texttt{F4}, Facebook Infer triggers reanalysis of functions \texttt{F4}, \texttt{F2}, and \texttt{F\textsubscript{MAIN}} only.
+For demonstrating the order of the analysis in Facebook Infer and its incrementality, assume the call graph given in Figure~\ref{fig:inferCallGraph}. At first, leaf functions \texttt{F5} and \texttt{F6} are analysed. Further, the analysis goes on towards the root of the call graph\,---\,\texttt{F\textsubscript{MAIN}}, while considering the dependencies denoted by the edges. This order ensures that a~summary is available once a~nested function call is abstractly interpreted within the analysis. When there is a~subsequent code change, only directly changed functions and all the functions up the call path are re-analysed. For instance, if there is a~change of source code of function \texttt{F4}, Facebook Infer triggers reanalysis of functions \texttt{F4}, \texttt{F2}, and \texttt{F\textsubscript{MAIN}} only.
 
 The last part of the architecture consists of analyser plugins. Each plugin performs some analysis by interpreting SIL instructions. The result of the analysis of each function (function summary) is stored in the results database. The interpretation of SIL instructions (\emph{commands}) is made using the \emph{abstract interpreter} (also called the \emph{control interpreter}) and \emph{transfer functions} (also called the \emph{command interpreter}). The transfer functions take a~previously generated \emph{abstract state} of an analysed function as an input, and by applying the interpreting command, produce a~new abstract state. The abstract interpreter interprets the command in an \emph{abstract domain} according to the CFG.
 
@@ -309,31 +313,31 @@ The sets of atomicity violations~$ \Delta $ from individual functions are the fi
 \section{\hspace{-.15em}Proposal of Enhancements for Atomer}
 \label{sec:proposal}
 
-Atomer was implemented in~\cite{harmimBP} according to the proposal discussed in the previous section. The analyser is working as expected. Moreover, it can be used in practice to analyse various kinds of programs, and it may find \emph{real atomicity related bugs}. Nevertheless, there are still several limitations and cases where Atomer would not work correctly, i.e., cases not considered during the original proposal. Below, there are proposed solutions for some of the limitations. The solutions enhance the analysis's \emph{precision} and \emph{scalability}. Furthermore, Section~\ref{sec:exp} provides an overview of the implementation of a~new version of Atomer.
+The above proposal was implemented in the first version of Atomer~\cite{harmimBP}. The implementation works and can be used in practice to analyse various kinds of programs, and it may find \emph{real atomicity related bugs}. Nevertheless, there are still several limitations and cases where the original version of Atomer would not work correctly, i.e., cases not addressed during the original proposal. Below, the author proposes solutions for some of the limitations. The solutions enhance the analysis's \emph{precision} and \emph{scalability}. Furthermore, Section~\ref{sec:exp} provides an overview of the implementation of a~new version of Atomer.
 
-\subsection{Approx. of the Use of Sequences by Sets}
+\subsection{Approximation of Sequences by Sets}
 
-Regarding \emph{scalability}, Atomer can have problems with more \emph{extensive} and \emph{complex} programs (problems with \emph{memory} as well as problems with \emph{analysis time}). The problem is working with the sets of ${ (A, B) }$ pairs of \emph{sequences} of function calls in \emph{abstract states} (during \textbf{Phase~1}). It may be necessary to store many of these sequences, and they could be very long (due to all different paths through the CFG of an analysed program). It seems promising to \emph{approximate} it (\emph{abstraction refinement}) by working with the sets of ${ (A, B) }$ pairs of \textbf{sets} of function calls. Elements of these pairs are also occurring in the the first phase's \emph{summaries}, and they are used during \textbf{Phase~2}. Thus, it is needed to make a~certain approximation in these structures and algorithms likewise.
+Regarding \emph{scalability}, the basic version of Atomer can have problems with more \emph{extensive} and \emph{complex} programs, which can manifest both in its \emph{time} and \emph{memory} consumption. The problems arise primarily due to working with the sets of ${ (A, B) }$ pairs of \emph{sequences} of function calls in \emph{abstract states} (during \textbf{Phase~1}). It may be necessary to store many of these sequences, and they could be very long (due to all different paths through the CFG of an analysed program). The author's idea is to \emph{approximate} these sets by working with sets of ${ (A, B) }$ pairs of \textbf{sets} of function calls. Apart from representing abstract states of the first phase of the analysis, elements of these pairs do also appear in the first phase's \emph{summaries}, and they are then used during \textbf{Phase~2} as well. Thus, it is needed to make a~certain approximation in the summaries and their subsequent usage too.
 
-In particular, this proposed solution is more scalable because the order of stored function calls is not relevant anymore while working with sets. Therefore, less memory is required because the same sets of function calls are not stored multiple times. The analysis is also faster since there are stored fewer sets of function calls to work with. On the other hand, the analysis is less accurate because the new approach causes some loss of information. In practice, this loss of information could eventually lead to \emph{false alarms}. However, the number of such false alarms should not often be so significant.
+In particular, the proposed solution is more scalable because the ordering of function calls that appear in the pairs is not relevant anymore. Therefore, less memory is required because different sequences of function calls can, of course, map the same set. The analysis is also faster since there are stored fewer sets of function calls to work with. On the other hand, the analysis is less accurate because the new approach causes some loss of information. In practice, this loss of information could eventually lead to \emph{false alarms}. However, the number of such false alarms is typically not that high as this project's experimental evidence shows.
 
-The \emph{detection of sequences of calls to be executed atomically} now generates all ${ (A, B) }$ pairs of \emph{sets} of function calls for each path instead of pairs of sequences. I.e., $ {(A, B)} \in 2^\Sigma \times 2^\Sigma $. The semantics of the pairs is preserved. So, the \emph{abstract states} are elements of the set $ 2^{2^{2^\Sigma \times 2^\Sigma}} $. In all the implemented algorithms and definitions, it is sufficient to work with:
+The \emph{detection of sequences of calls to be executed atomically} now generates all ${ (A, B) }$ pairs of \textbf{sets} of function calls for each path instead of pairs of sequences, i.e., $ {(A, B)} \in 2^\Sigma \times 2^\Sigma $. The purpose of the pairs is preserved. So, the \emph{abstract states} are elements of the set $ 2^{2^{2^\Sigma \times 2^\Sigma}} $. In all the implemented algorithms and definitions, it is sufficient to work with:
 \begin{enuminline}
     \item \emph{sets}~$ 2^\Sigma $ of functions, instead of \emph{sequences}~$ \Sigma^* $ of functions;
 
-    \item \emph{empty sets}~$ \emptyset $, instead of \emph{empty sequences}~$ \varepsilon $;
+    \item the \emph{empty set}~$ \emptyset $, instead of the \emph{empty sequence}~$ \varepsilon $;
     
-    \item and a~\emph{union}~$ \cup $ of sets, instead of a~\emph{concatenation}~$ \cdot $ of sequences.
+    \item and \emph{unions}~$ \cup $ of sets, instead of the \emph{concatenation}~$ \cdot $ of sequences.
 \end{enuminline}
-Consequently, also the summary is redefined as $ \chi \in 2^{2^\Sigma} \times 2^\Sigma $.
+Consequently, also the form of summaries~$ \chi $ changes from $ 2^{\Sigma^*} \times \Sigma^* $ to $ 2^{2^\Sigma} \times 2^\Sigma $.
 
 \begin{example}
-    For demonstrating the approximation of the analysis to sets, assume functions~\texttt{f} and~\texttt{g} from Listing~\ref{list:atomerPhase1Sets}. After the approximation, the produced abstract states and summaries are as follows (i.e., they are the same for both functions because there are the same locked/unlocked function calls, only the order of calls differs): $ s_\mathtt{f} = s_\mathtt{g} = \{\{({\{\mathtt{a}, \mathtt{b}\}}, {\{\mathtt{x}, \mathtt{y}\}})\}\} $, $ \chi_\mathtt{f} = \chi_\mathtt{g} = ({\{\{\mathtt{x}, \mathtt{y}\}\}}, {\{\mathtt{a}, \mathtt{b}, \mathtt{x}, \mathtt{y}\}}) $.
+    For demonstrating the approximation of the analysis to sets, assume functions~\texttt{f} and~\texttt{g} from Listing~\ref{list:atomerPhase1Sets}. After the approximation, the produced abstract states and summaries are as follows: $ s_\mathtt{f} = s_\mathtt{g} = \{\{({\{\mathtt{a}, \mathtt{b}\}}, {\{\mathtt{x}, \mathtt{y}\}})\}\} $, $ \chi_\mathtt{f} = \chi_\mathtt{g} = ({\{\{\mathtt{x}, \mathtt{y}\}\}}, \{\mathtt{a}, \mathtt{b}, \allowbreak \mathtt{x}, \mathtt{y}\}) $. This is, they are the same for both functions because there are the same locked/unlocked function calls, only the order of calls differs.
 \end{example}
 
 \begin{lstlisting}[
     style=c, label={list:atomerPhase1Sets}, float=hbt,
-    caption={A~code snippet used to illustrate the Atomer's \textbf{Phase~1} \emph{approximation} of the analysis with \emph{sets of function calls}}
+    caption={A~code snippet used to illustrate the proposed \emph{approximation} of the first phase of the analysis in the new version of Atomer by using \emph{sets of function calls}}
 ]
 void f() {
     a(); b();
@@ -347,23 +351,23 @@ void g() {
     <@\textcolor{red}{unlock}@>(&L); }
 \end{lstlisting}
 
-\emph{Detecting violations of atomicity} works almost the same way as before the approximation. There is only one difference. Before, it was detected violations of atomic sequences obtained from \textbf{Phase~1}. Now, \textbf{atomic sets} are obtained; hence, the detection of violations of atomic sets is performed. It is needed to propose a~new algorithm that derives pairs of function calls (from the atomic sets) to be checked for atomicity. To obtain the pairs, it is taken a~union of sets containing all \emph{2-element variations} of single atomic sets (i.e., all possible pairs).
+\emph{Detection of atomicity violation} in \textbf{Phase~2} then works almost the same way as before the approximation. There is only one difference. Before, the analysis implemented in the second phase looked for violations of atomic sequences obtained from \textbf{Phase~1}. Now, \textbf{atomic sets} are obtained from \textbf{Phase~1}; hence, the detection of atomicity violations needs to work with sets too. The second phase of the analysis now looks for non-atomic execution of any pair of functions~\texttt{f,~g} such that ${ \{\mathtt{f, g}\} }$ is a~\emph{subset} of some set of functions that were found to be executed atomically.
 
 \begin{example}
     \sloppy
-    For example, assume that in \textbf{Phase~1}, there was analysed a~function~\texttt{f}, which produced the summary $ \chi_f = {(\boldsymbol{B}, AB)} $. Assume that a~set of sets of functions that should be called atomically is the following: $ \boldsymbol{B} = \{{\{\mathtt{a}, \mathtt{b}, \mathtt{c}\}}\} $, the analysis now looks for the following pairs of functions that are not called atomically (all 2-element variations): $ \Omega = \{{(\mathtt{a}, \mathtt{b})}, {(\mathtt{a}, \mathtt{c})}, {(\mathtt{b}, \mathtt{a})}, {(\mathtt{b}, \mathtt{c})}, {(\mathtt{c}, \mathtt{a})}, {(\mathtt{c}, \mathtt{b})}\} $.
+    For example, assume that \textbf{Phase~1} analysed a~function~\texttt{f}, which produced the summary $ \chi_f = {(\boldsymbol{B}, AB)} $. Assume that the set~$ B $ of sets of functions that should be called atomically is the following: $ \boldsymbol{B} = \{{\{\mathtt{a}, \mathtt{b}, \mathtt{c}\}}\} $, the analysis now looks for the following pairs of functions that are not called atomically (all 2-element variations): $ \Omega = \{{(\mathtt{a}, \mathtt{b})}, {(\mathtt{a}, \mathtt{c})}, {(\mathtt{b}, \mathtt{a})}, {(\mathtt{b}, \mathtt{c})}, {(\mathtt{c}, \mathtt{a})}, {(\mathtt{c}, \mathtt{b})}\} $.
 \end{example}
 
 
 \subsection{Advanced Manipulation with Locks}
 
-So far, Atomer does not work with \emph{nested locks}, i.e., it does not distinguish \emph{different lock instances} in a~program. Only calls of locks/unlocks are identified, and the parameters of these calls (\emph{lock objects}) are not considered. Thus, if there are several lock objects used, the analysis does not work correctly. Although this may happen in \emph{real-life programs}, insomuch as one could have another (smaller) atomic section inside an outer atomic section or an \emph{alternating lock sequence} may be in use.
+The original version of Atomer does not work with \emph{nested locks}, i.e., it does not distinguish \emph{different lock instances} in a~program. Only calls of locks/unlocks are identified, and the parameters of these calls (\emph{lock objects}) are not considered. Thus, if there are several lock objects used, the analysis does not work correctly. Although this may happen in \emph{real-life programs}, insomuch as one could have another (smaller) atomic section inside an outer atomic section or an \emph{alternating lock sequence} may be in use.
 
 In order to consider lock objects, it was proposed to distinguish between them using Facebook Infer's built-in mechanism called \emph{access paths}~\cite{accessPath}. The analyser does not perform a~general \emph{alias analysis}, i.e., it is not performed a~precise analysis for saying when arbitrary pairs of accesses to lock objects may alias. During the analysis (both phases), each atomic section is identified by an access path of a~lock that guards the section. Because \emph{syntactically identical access paths} are used as the intuition for distinguishing atomic sections, some atomicity violations could be missed (or some false alarms could be reported) due to distinct access paths that refer to the same memory. However, it vastly simplifies the analysis, and the stress is put on finding likely violations.
 
 The \emph{syntactic access paths} represent \emph{heap locations} via the paths used to access them, i.e., a~base variable followed by a~sequence of fields. More formally, let $ Var $ be a~set of all variables that can occur in a~given program. Let $ Field $ be a~set of all possible field names that can be used in the program (e.g., structure fields). An access path~$ \pi $ from the set~$ \Pi $ of all access paths is then defined as follows: $ \pi \in \Pi \Coloneqq Var \times Field^* $. Access paths are already implemented in Facebook Infer. For instance, the principle of using access paths is used in an existing analyser in Facebook Infer\,---\,RacerD~\cite{racerD}\,---\,for data race detection. In general, no sufficiently precise \emph{alias analysis} works \emph{compositionally} and at \emph{scale}. That is the motivation for using access paths in Facebook Infer and Atomer.
 
-Another Atomer's limitation is that it does not count with \emph{re-entrant locks}, i.e., a~process can lock the same lock object multiple times without blocking itself, then it unlocks the lock object the same number of times. This approach is, in fact, widespread, e.g., in Java, where so-called \emph{synchronised blocks} are used. These blocks are re-entrant by default. To consider re-entrant locks in the analysis, the number of locks of individual lock objects is tracked in the abstract states of both phases of the analysis. A~lock is unlocked as soon as this number decreases to 0. Also, an input parameter~$ t \in \mathbb{N} $ was proposed to limit the upper bound of the number of the same lock is held. This is to ensure the \emph{termination} of the analysis.
+Another limitation of Atomer in its basic version is that it does not count with \emph{re-entrant locks}, i.e., a~process can lock the same lock object multiple times without blocking itself, then it unlocks the lock object the same number of times. This approach is, in fact, widespread, e.g., in Java, where so-called \emph{synchronised blocks} are used. These blocks are re-entrant by default. To consider re-entrant locks in the analysis, the number of locks of individual lock objects is tracked in the abstract states of both phases of the analysis. A~lock is unlocked as soon as this number decreases to 0. Also, an input parameter~$ t \in \mathbb{N} $ was proposed to limit the upper bound of the number of the same lock is held. This is to ensure the \emph{termination} of the analysis.
 
 The \emph{detection of sets of calls to be executed atomically} is based on generating all ${ (A, B) }$ pairs. Now, it is needed to store access paths and the number of locks of lock objects that guard calls executed atomically, i.e., the~$ B $ sets. Therefore, these pairs are extended to the tuples $ {(A, B, \pi, l)} \in 2^\Sigma \times 2^\Sigma \times \Pi \times \mathbb{N}_0 $, where~$ \pi $ is an access path that identifies a~lock object which locks an atomic section that contains the calls from~$ B $, and~$ l $ is the number of locks of the lock identified by~$ \pi $. As a~consequence, the \emph{abstract states} are elements of the set $ 2^{2^{2^\Sigma \times 2^\Sigma \times \Pi \times \mathbb{N}_0}} $.
 
@@ -403,11 +407,13 @@ void g() {
     <@\textcolor{red}{unlock}@>(&<@\textcolor{cyan}{L2}@>); }
 \end{lstlisting}
 
-Finally, support for so-called \emph{lock guard objects} was proposed. Lock guards are objects associated with lock objects. One lock guard can be associated with multiple lock objects, and one lock object can be associated with multiple lock guards. When a~lock guard is created, all lock objects associated with it are locked. When a~lock guard is destroyed (usually, when a~\emph{scope of variables} is left), all lock objects associated with it are automatically unlocked. Although, under certain circumstances, lock guards can be locked/unlocked manually. Lock guards are widely used, especially in C++, but they are used, e.g., in Java as well. To cope with them, lock guards are also identified by \emph{access paths}. The association between a~lock guard and lock objects is modelled as a~pair $ {(\pi_g, L)} \in \Pi \times 2^\Pi $, where~$ \pi_g $ is an access path that identifies the lock guard and~$ L $ is a~set of access paths that identify the lock objects associated with the guard identified by~$ \pi_g $. In the \emph{abstract states} of both phases of the analysis, associations between lock guards and lock objects are maintained as a~set that is an element of the set $ 2^{\Pi \times 2^\Pi} $, i.e., there is a~set of associations between lock guards and lock objects. Subsequent locks/unlocks of lock guards are then interpreted as a~sequence of locks/unlocks of lock objects associated with these lock guards. 
+Finally, support for so-called \emph{lock guard objects} was proposed. Lock guards are objects associated with lock objects. One lock guard can be associated with multiple lock objects, and one lock object can be associated with multiple lock guards. When a~lock guard is created, all lock objects associated with it are locked. When a~lock guard is destroyed (usually, when a~\emph{scope of variables} is left), all lock objects associated with it are automatically unlocked. Although, under certain circumstances, lock guards can be locked/unlocked manually. Lock guards are widely used, especially in C++, but they are used, e.g., in Java as well. To cope with them, lock guards are also identified by \emph{access paths}. The association between a~lock guard and lock objects is modelled as a~pair $ {(\pi_g, L)} \in \Pi \times 2^\Pi $, where~$ \pi_g $ is an access path that identifies the lock guard and~$ L $ is a~set of access paths that identify the lock objects associated with the guard identified by~$ \pi_g $. In the \emph{abstract states} of both phases of the analysis, associations between lock guards and lock objects are maintained as a~set that is an element of the set $ 2^{\Pi \times 2^\Pi} $, i.e., there is a~set of associations between lock guards and lock objects. Subsequent locks/unlocks of lock guards are then interpreted as a~sequence of locks/unlocks of lock objects associated with these lock guards.
 
 \subsection{Analysis's Parametrisation}
 
-One of the main reasons that Atomer reports \emph{false alarms} is that in \emph{critical sections}, in practice, there are sometimes called \emph{generic functions} that do not influence atomicity violations (such as functions for printing to the standard output, functions for recasting variables to different types, functions related to iterators, and whatever other \uv{safe} functions for particular program types). Often, to find some atomicity violations, it is sufficient to focus only on certain \uv{critical} functions. In general, usually, calls of \emph{constructor} and \emph{destructor} methods of classes do no effect atomicity violations. Therefore, these calls could be implicitly ignored. Nonetheless, it can be demanding to identify the functions that should be set aside or the functions to focus on because it is application-specific. Although, a~user may provide this information to the analysis. For this reason, the following input parameters of the analysis are proposed:
+One of the main reasons why Atomer in its first version reports \emph{false alarms} is that, in practice, \emph{critical sections} often interleave calls of functions that need to be executed atomically with common functions that need not be executed atomically (such as functions for printing to the standard output, functions for recasting variables to different types, functions related to iterators, and various other \uv{safe} functions). Often, to find real atomicity violations, it is sufficient to focus on specific \uv{critical} functions only.
+
+For example, calls of \emph{constructor} and \emph{destructor} methods of classes do not lead to atomicity violations. Therefore, these calls can usually be ignored. Unfortunately, in general, it is not easy to differentiate between functions that should be set aside and functions to focus on because this distinction is application-specific. Therefore, the author decided to rely on a~user to provide this information to the analysis. (Indeed, providing information of this kind is not so exceptional, e.g., for developers of libraries. A~similar approach has also been chosen, e.g., in the \emph{ANaConDA dynamic analyser} for concurrency issues~\cite{anaconda}, where a~user can use so-called \emph{hierarchical filters} to specify functions that the analysis should not monitor.) For this reason, the following input parameters of the analysis are proposed:
 \begin{enuminline}
     \item a~list of functions that will not be analysed;
     
@@ -417,16 +423,16 @@ One of the main reasons that Atomer reports \emph{false alarms} is that in \emph
     
     \item and a~list of functions whose calls will be considered (and all other function calls will not be).
 \end{enuminline}
-In other words, there are \emph{black-lists} and \emph{white-lists} of functions to analyse and function calls to consider. It is possible to combine these parameters, and they can be enabled for individual phases of the analysis. The parameters are proposed to be file names of readable text files containing one function name per line. Moreover, suppose the line starts with character \texttt{R} followed by a~whitespace. In that case, the function name is considered a~\emph{regular expression} so that several function names could be taken into account at once.
+In other words, there are \emph{black-lists} and \emph{white-lists} of functions to analyse and function calls to consider. It is possible to combine these parameters, and they can be enabled for individual phases of the analysis. In the below-mentioned implementation of the approach, these parameters' values are read from input text files that contain one function name per line. Moreover, the implementation allows a~user to specify sets of functions using \emph{regular expressions} (in that case, the line must start with the letter~\texttt{R} followed by whitespace).
 
-Another issue is that in an analysed program, there could be \uv{large} critical sections or critical sections in which appear function calls with a~\emph{deep hierarchy of nested function calls}. Both cases could cause massive and \uv{imprecise} atomic sets that are the source of false alarms.
+Another issue often causing false alarms is that some programs contain \uv{large} critical sections or critical sections that include function calls with a~\emph{deep hierarchy of nested function calls}. Both cases can cause massive and \uv{imprecise} atomic sets that are the source of false alarms. Indeed, such \uv{large} and/or \uv{deep} critical sections are likely to contain a~number of calls of functions that are not critical.
 
-To resolve the problem of large critical sections, input parameter $ p \in \mathbb{N} $ is proposed. During the first phase of the analysis, from the ${ (A, B) }$ pairs, there are removed such pairs where $ |B| > p $, i.e., removed such pairs where the number of functions in the set~$ B $ (functions called atomically) is greater than the limit~$ p $.
+To resolve \uv{large} critical sections' problem, the author proposes to parametrise the analysis by a~parameter $ p \in \mathbb{N} $ that limits the maximum length of a~critical section to be taken into account. During its first phase, the analysis then discards all ${ (A, B) }$ pairs where $ |B| > p $, i.e., it removes pairs where the number of functions in the set~$ B $ (functions called atomically) is greater than the limit~$ p $.
 
-During the first phase, when calling an already analysed \emph{nested function}, the $ AB $ set (i.e., the set of all called functions within a~function) from its summary is used. If there is a~deep hierarchy of nested function calls, at the top level of the hierarchy, there are used function calls from all lower-level functions, leading to large critical sections. To avoid this problem, the summary $ \chi = {(\boldsymbol{B}, AB)} \in 2^{2^\Sigma} \times 2^\Sigma $ in \textbf{Phase~1} is redefined as $ 2^{2^\Sigma} \times 2^{\mathbb{N}_0 \times 2^\Sigma} $, i.e., $ AB $ is no longer a~set of all functions called within an analysed function. It is a~set of pairs where each pair represents called functions at a~particular level in the hierarchy of a~nested function (0~means the top-level). For instance, the summary $ \chi_\mathtt{f} = (\emptyset, \{{(0, \{\mathtt{a, b}\})}, {(1, \{\mathtt{x, y}\})}\}) $ of a~function~\texttt{f} means that there were called functions \texttt{a, b} in~\texttt{f} and that there were called functions \texttt{x, y} in functions one level lower in the call tree (i.e., in functions directly invoked from~\texttt{f}). During the analysis, the summaries are forwarded among functions in the call hierarchy, and stored function calls are merged in appropriate levels. Furthermore, the input parameter $ r \in \mathbb{N}_0 $ is proposed to limit the number of levels considered during analysing nested functions.
+To get to the above proposal of dealing with deeply nested critical functions, recall that, during the first phase, when calling an already analysed \emph{nested function}, the $ AB $ set (i.e., the set of all called functions within a~function) from its summary is used. If there is a~deep hierarchy of nested function calls, the top level of the hierarchy uses function calls from all lower-level functions, leading to \uv{large} critical sections. To avoid this problem, the summary $ \chi = {(\boldsymbol{B}, AB)} \in 2^{2^\Sigma} \times 2^\Sigma $ in \textbf{Phase~1} is redefined as $ 2^{2^\Sigma} \times 2^{\mathbb{N}_0 \times 2^\Sigma} $, i.e., $ AB $ is no longer a~set of all functions called within an analysed function. It is a~set of pairs where each pair represents called functions called at a~particular level in the hierarchy of a~nested function (0~means the top-level). For instance, the summary $ \chi_\mathtt{f} = (\emptyset, \{(0, \{\mathtt{a, b}\}), (1, \allowbreak \{\mathtt{x, y}\})\}) $ of a~function~\texttt{f} means that there were called functions \texttt{a, b} in~\texttt{f} and that there were called functions \texttt{x, y} in functions one level lower in the call tree (i.e., in functions directly invoked from~\texttt{f}). During the analysis, the summaries are passed among functions in the call hierarchy. Furthermore, the analysis uses a~parameter $ r \in \mathbb{N}_0 $ to limit the number of levels considered during analysing nested functions.
 
 \begin{example}
-    Assume function \texttt{f, g, h} from Listing~\ref{list:atomerDeepParam}. Their summaries for the first phase are as follows: $ \chi_\mathtt{h} = (\emptyset, \{(0, \{\mathtt{x, y}\})\}) $, $ \chi_\mathtt{g} = (\emptyset, \{(0, \{\mathtt{c, d, h}\}), \allowbreak (1, \{\mathtt{x, y}\})\}) $, $ \chi_\mathtt{f} = (\emptyset, \{(0, \{\mathtt{a, b, g}\}), (1, \{\mathtt{c, d, h}\}), (2, \allowbreak \{x, y\})\}) $. When the parameter $ r = 1 $ is used, the summary of the function~\texttt{f} changes as follows: $ \chi_\mathtt{f}^\prime = (\emptyset, \{(0, \{\mathtt{a, b, g}\}), (1, \{\mathtt{c, d, h}\})\}) $.
+    Assume functions \texttt{f, g, h} from Listing~\ref{list:atomerDeepParam}. Their summaries for the first phase are as follows: $ \chi_\mathtt{h} = (\emptyset, \{(0, \{\mathtt{x, y}\})\}) $, $ \chi_\mathtt{g} = (\emptyset, \{(0, \{\mathtt{c, d, h}\}), \allowbreak (1, \{\mathtt{x, y}\})\}) $, $ \chi_\mathtt{f} = (\emptyset, \{(0, \{\mathtt{a, b, g}\}), (1, \{\mathtt{c, d, h}\}), (2, \allowbreak \{x, y\})\}) $. When the value of the parameter~$ r $ is set to~1, the summary of the function~\texttt{f} changes as follows: $ \chi_\mathtt{f}^\prime = (\emptyset, \{(0, \{\mathtt{a, b, g}\}), (1, \{\mathtt{c, d, h}\})\}) $.
 \end{example}
 
 \begin{lstlisting}[
@@ -443,14 +449,31 @@ void f() { a(); g(); b(); }
 \section{Implementation and Experiments}
 \label{sec:exp}
 
-\todo{TODO}
+The proposed extensions and improvements from Section~\ref{sec:proposal} were implemented in the new version of \emph{Atomer}. The implementation can be found among the supplementary materials of the paper. Besides the extensions described in the previous section, Atomer was extended to support analyses of \emph{C++} and \emph{Java} languages. As it was already mentioned in Section~\ref{sec:infer}, in general, Facebook Infer can analyse programs written in C, C++, Java, Objective-C, and C\#. The Facebook Infer's \emph{frontend} compiles input programs into the \emph{SIL language} and represents them as a~CFG. Individual analyses are then performed on SIL. However, in practice, there are not negligible differences between these languages. Thus, individual non-trivial analysers have to be adapted for specific languages.
+
+The basic version of Atomer supported only~C language using \emph{PThread mutex locks}. The new version of Atomer was adjusted to support also other C~locks and more complicated \emph{mutual exclusion} C++ and Java mechanisms. In particular, the following locking mechanisms are supported in the new version of Atomer:
+\begin{enuminline}
+    \item all C/C++ locks from the \texttt{pthread.h} library, including, e.g., \texttt{spinlock};
+
+    \item C++ locks and lock guards from standard libraries \texttt{std::mutex} and \texttt{std::shared\_mutex};
+    
+    \item C++ locks and lock guards from C++ libraries from Apache Thrift, Boost, and Facebook Folly;
+    
+    \item Java locks from the standard package \texttt{java.util.concurrent.locks};
+    
+    \item and Java lock guards, i.e., \emph{synchronised} blocks and methods using the \texttt{synchronized} keyword.
+\end{enuminline}
+
+The implementation of the new version of Atomer was, at first, tested on suitable programs created for testing purposes. During testing, various kinds of different lock mechanisms for C/C++/Java were used. Moreover, the test suit was designed in order to check all aspects of the newly implemented features. It was validated a~correct behaviour of the analysis of the new version of Atomer (w.r.t. the proposal).
+
+\todo{Experimenty s Apache Tomcat, Cassandra a možná s testovacími programy z Gluona.}
 
 
 %===============================================================================
 \section{Conclusions}
 \label{sec:conc}
 
-\todo{TODO}
+\todo{Tady popsal hlavě Future Work. Možná celou tuhle sekci přejmenovat na Future Work?}
 
 
 \section*{Acknowledgements}
@@ -462,6 +485,8 @@ I~thank my colleagues from VeriFIT for their assistance. I~would particularly li
 %===============================================================================
 \phantomsection
 \bibliographystyle{unsrt}
+\setlength{\bibsep}{.05em}
+\apptocmd{\sloppy}{\hbadness 10000 \relax}{}{}
 \bibliography{2021-ExcelFIT-StaticAnalysisAtomicityInfer}
 
 
