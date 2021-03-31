@@ -8,7 +8,7 @@
 %===============================================================================
 
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesClass{ExcelAtFIT}[21/02/2021, v1.1]
+\ProvidesClass{ExcelAtFIT}[21/03/2021, v1.1]
 \RequirePackage{ifthen}
 \RequirePackage{calc}
 \AtEndOfClass{\RequirePackage{microtype}}
