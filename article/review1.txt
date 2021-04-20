@@ -1,0 +1,20 @@
+*** Shrnutí článku ***
+Článek se zabývá inovací existujícího nástroje (Atomer), založeného na Facebook Infer, pro detekci porušení atomičnosti posloupnosti volání funkcí při souběžném provádění programů. Mj., inovace zahrnuje aproximaci sekvence volání funkcí množinou volání funkcí, podporu jazyků C++ a Java, dalších typů zámků či lepší rozlišování mezi instancemi zámků.
+
+*** Přínos / Zařazení ***
+Přínos (výstupu) článku spatřuji v oblasti statické analýzy programů s cílem odhalit specifické chyby atomičnosti, které se mohou vyskytnout při provádění určité třídy programů.
+
+*** Silné stránky ***
+- Oceňuji snahu autora o rozšíření aplikačních možností nástroje Atomer a zlepšení jeho vlastností (viz např. abstrakt "This work aims to improve and extend Atomer significantly", či řádky 487-490 "... no sufficiently precise alias analysis works compositionally and at scale. That is the motivation for ... Atomer."); nicméně, namísto řešení mnohých rozmanitých podproblémů bych spíše doporučil soustředit se na užší množinu problémů a jejich řešení,
+- v článku oceňuji řadu doprovodných příkladů a ilustrací; nicméně, jejich počet je až kontraproduktivní z pohledu čitelnosti článku.
+
+
+*** Slabé stránky ***
+- Ve článku postrádám ucelenější rešerši k současným metodám a prostředkům/nástrojům (alespoň statické) analýzy programů, ze které by plynula motivace k inovaci nástroje Atomer; motivace by také mohla být podpořena nějakou studií, ohledně klasifikace chyb programového vybavení vč. poměrného zastoupení jednotlivých chybových tříd,
+- z textu článku plyne, že stávající implementace nástroje detekuje nadměrné množství falešně pozitivních porušení atomicity a příčina tohoto chování nebyla dosud dostatečně analyzována či odhalena. Toto chování může, např., souviset s aproximací sekvence volání funkcí pomocí množin volání funkcí - solidní analýza obdobných souvislostí však ve článku schází. V této souvislosti by si tvrzení "it is sufficient to work with: sets ... of functions, instead of sequences ... of functions" (řádek 428 a dále) zasloužilo alespoň stručné zdůvodnění,
+- i přes svůj relativně velký rozsah článek neobsahuje dostatek dat pro kritické zhodnocení realizačního výstupu a některých tvrzení uvedených v článku (např. týkajících se škálovatelnosti).
+
+*** Konkrétní doporučení na zlepšení ***
+Stručně řečeno - článek je poměrně rozsáhlý a přitom některé klíčové informace (např. ohledně vstupní rešerše či dat/podkladů pro zhodnocení realizačního výstupu) neobsahuje. Z hlediska čtenáře je však ničím nepodložené zhodnocení přinejlepším diskutabilní, spíše však bezcenné - absence zmíněných podkladů tedy výrazně snižuje celkové hodnocení článku.
+
+Konkrétně doporučuji ze stávajícího textu vypustit již publikované, obecné, nepodstatné, opakující se apod. informace (zejména výrazně zkrátit části 1-3) a, s cílem zvýšit čitelnost článku, ponechat/doplnit (ad části 4, 5) informace klíčové z pohledu řešeného problému a kritického zhodnocení vlastností realizačního výstupu - u části 4 bych doporučil jasně, avšak neobšírně a pro čitelnost možná i méně formálně, popsat, co, proč a jak bylo v nástroji Atomer inovováno a jakých dílčích cílů mají příslušné inovace pomoci dosáhnout.
