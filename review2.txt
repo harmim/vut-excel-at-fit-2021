@@ -1,0 +1,19 @@
+***Summary***
+The paper presents a significant extension of Atomer, a static analyser (implemented within Facebook Infer) for checking atomicity violations in concurrent programs. Note that the author of this submission is also the author of the original version of Atomer (presented in his Bachelor thesis).
+
+The main extensions of the tool include: i) approximation of the call sequence representation improving the scalability of the analysis, ii) support for more complicated locking mechanisms (e.g. reentrant locks), and iii) support for parametrised analysis allowing user to focus on selected set of functions and thus reducing the number of false alarms.
+
+***Classification***
+This work represents a research paper (see the weaknesses) in the area of static analysis of concurrent programs.
+
+*** Strengths ***
+The paper is well written. The technical parts are clear and include a large number of very useful examples. In my opinion, the author has done a large amount of work including nontrivial algorithms and advanced implementation.
+
+*** Weaknesses and improvement recommendations ***
+The paper lacks a comparison with other existing tools/methods for checking atomicity violations (e.g. [2] or Frama-C?) — if a direct comparison is not possible, it is essential to discuss the related tools/methods and explain the benefits of the proposed tool.
+
+The main weakness is the experimental evaluation. The current version lacks concrete artefacts (i.e. tables or graphs) supporting the claims, e.g., line 754 saying that the number of false alarms was significantly reduced, the part reporting the impact of the parametrised analysis, or the performance improvement obtained by the approximation (here I would also expect an evaluation of the precision of the approximation).
+
+Further, I have few suggestions how to improve the paper: The abstract is too wordy — it should first briefly motivate the work (introduce the research area) and then present the main contributions. Add references to the tools (e.g. Coverity, CodeSonar). Both the abstract and introduction includes a strange sentence (see lines 94-97). The footnotes 5 and 6 should be integrated into the main text (in my opinion).
+
+For Excel@FIT, I recommend shorting (or removing) some technical parts and adding the comparison and extending the experimental evaluation.
