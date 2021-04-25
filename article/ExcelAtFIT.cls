@@ -4,11 +4,11 @@
 %  HISTORY:
 %    2015-02-04 - Herout: initial version for Excel@FIT 2015
 %    2015-04-03 - Herout: works with [czech] and [slovak] options
-%    2021-03-21   Harmim
+%    2021-04-25   Harmim
 %===============================================================================
 
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesClass{ExcelAtFIT}[21/03/2021, v1.1]
+\ProvidesClass{ExcelAtFIT}[25/04/2021, v1.1]
 \RequirePackage{ifthen}
 \RequirePackage{calc}
 \AtEndOfClass{\RequirePackage{microtype}}
@@ -60,6 +60,10 @@
 ]{caption}
 \setlength{\abovecaptionskip}{1pt}
 \setlength{\belowcaptionskip}{-12pt}
+
+\RequirePackage{float}
+\floatstyle{plaintop}
+\restylefloat{table}
 
 %===============================================================================
 % PAGE HEADER
