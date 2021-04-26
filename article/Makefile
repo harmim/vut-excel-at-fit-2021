@@ -1,6 +1,6 @@
 # Author: Dominik Harmim <harmim6@gmail.com>
 
-PACK := 2021-ExcelFIT-StaticAnalysisAtomicityInfer.tar.gz
+PACK := 2021-ExcelFIT-StaticAnalysisAtomicityInfer.tgz
 
 
 .PHONY: pack
