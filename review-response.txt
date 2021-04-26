@@ -1,0 +1,13 @@
+Děkuji za velmi přínosné recenze. Řadu věcí jsem si díky nim uvědomil.
+
+Neuvědomil jsem si, že v článku schází porovnání s jinými podobnými nástroji, což je důležité. Za tímto účelem jsem přidal podsekci 3.1 Related Work. Dále, abych podpořil motivaci práce, jsem do 3. odstavce 1. sekce přidal referenci na článek, kde je mj. diskutována důležitost chyb, kterými se moje práce zabývá. Je zde také uvedeno několik příkladů tohoto druhu chyby v reálném kódu.
+
+Nesouhlasím s výrokem recenzenta, že by příčina detekce nadměrného množství falešně pozitivních chyb nebyla v článku analyzována. Je tam diskutováno několik důvodů, proč k tomuto dochází a byla navržena i experimentálně ověřena řešení některých z těchto problémů.
+
+Souhlasím s tím, že zásadním nedostatkem práce byly experimenty. Všechny vhodné experimenty nebyly v čase psaní první verze článku ještě zcela dokončeny. Za tímto účelem byl značně rozšířen poslední odstavec 5. sekce (vyhodnocení škálovatelnosti) a byly přidány tabulky 1 a 2. S experimenty, které se týkají vyhodnocení přesnosti analyzátoru, je to složitější. Ideální by bylo mít nějaký benchmark, kde by se vyskytovaly chyby daného druhu. Podle mého nejlepšího vědomí však žádný takový benchmark neexistuje, proto se alespoň snažím výstup práce vyhodnocovat buď na jednoduchých uměle vytvořených programech nebo na rozsáhlejších reálných programech, kde je ale náročné rozpoznat, které nahlášené chyby jsou falešné, což je v práci diskutováno.
+
+Nerozumím doporučení recenzenta, že by bylo dobré popsat, co bylo v rámci práce inovováno a jakých dílčích cílů mají příslušné inovace pomoci dosáhnout. Podle mého názoru je u každé inovace jasně uvedené, jaký má smysl a jaký je její cíl.
+
+Podle jednoho z recenzentů byl abstrakt trochu těžkopádný. Díku tomu jsem ho kompletně přepsal.
+
+V poslední řadě byly v práci upraveny drobné detaily mj. i na doporučení recenzentů.
