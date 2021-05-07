@@ -128,7 +128,7 @@ void invoke(char *method) {
         \end{column}
         \hfill
     \end{columns}
-    
+
     \medskip
 
     \begin{columns}
@@ -168,9 +168,9 @@ void invoke(char *method) {
         \item \textbf{Assumption}: \alert{call sequences} executed \emph{atomically once} should (probably) be executed \emph{always atomically}.
 
         \item Implemented for \emph{C~programs} that use \emph{PThread locks}.
-            
+
         \item Limited \alert{scalability} on extensive codebases.
-            
+
         \item Reports many \alert{false alarms} when analysing \emph{real-life} code.
     \end{itemize}
 \end{frame}
@@ -202,11 +202,11 @@ void invoke(char *method) {
 
 \begin{lstlisting}
 void f() {
-  <@\texttt{\textcolor{red}{\textbf{lock}}}@>(L); 
+  <@\texttt{\textcolor{red}{\textbf{lock}}}@>(L);
   x(); y(); z(); // x.y.z -> {x,y,z}
   <@\texttt{\textcolor{red}{\textbf{unlock}}}@>(L);
   a();
-  <@\texttt{\textcolor{red}{\textbf{lock}}}@>(L); 
+  <@\texttt{\textcolor{red}{\textbf{lock}}}@>(L);
   z(); y(); x(); // z.y.x -> {x,y,z}
   <@\texttt{\textcolor{red}{\textbf{unlock}}}@>(L);
 }
@@ -216,9 +216,9 @@ void f() {
             \footnotesize
 
             $ \boldsymbol{\chi_\mathtt{f} = (\textcolor{brown}{\{\mathtt{a, x, y, z}\}}, \textcolor{magenta}{\{\{\mathtt{x, y, z}\}\}})} $
-            
+
             \smallskip
-            
+
             \textcolor{gray}{$ \chi_\mathtt{f}^\prime = (\textcolor{brown}{\mathtt{x \cdot y \cdot z \cdot a}}, \textcolor{magenta}{\{\mathtt{x \cdot y \cdot z}, \mathtt{z \cdot y \cdot x}\}}) $}
         \end{column}
 
@@ -229,13 +229,13 @@ void f() {
 
             \begin{itemize}
                 \item Derives "\alert{atomic pairs}" from the first phase: $ \Omega \in 2^{\Sigma \times \Sigma} $
-            
+
                 \item Looks for \emph{non-atomic pairs} of calls assumed to \alert{run atomically}.
 
                 \item \textbf{Summary}: $ \chi \in \textcolor{orange}{2^{\Sigma \times \Sigma}} $ \\
                     (\textcolor{orange}{set of atomicity violations})
             \end{itemize}
-            
+
             \medskip
 
 \begin{lstlisting}
@@ -247,15 +247,15 @@ void g() {
             \medskip
             \centering
             \footnotesize
-            
+
             $ \boldsymbol{\Omega = \{(\mathtt{x, y}), (\mathtt{x, z}), (\mathtt{y, x}), (\mathtt{y, z}), (\mathtt{z, x}), (\mathtt{z, y})\}} $
-            
+
             \smallskip
-            
+
             \textcolor{gray}{$ \Omega^\prime = \{(\mathtt{x, y}), (\mathtt{y, z}), (\mathtt{z, y}), (\mathtt{y, x})\} $}
-            
+
             \smallskip
-            
+
             $ (\mathtt{x, y}) \in \Omega \Longrightarrow \boldsymbol{\chi_\mathtt{g} = \textcolor{orange}{\{(\mathtt{x, y})\}}} $
         \end{column}
     \end{columns}
@@ -282,7 +282,7 @@ void g() {
             \medskip
             \begin{itemize}\setlength\itemsep{.8em}
                 \item \alert{ignoring} \emph{generic functions}\,---\,\alert{concentrating on} \emph{critical functions};
-                    
+
                 \item \alert{limiting} the \emph{number of calls} or the \emph{depth of nested calls} in \alert{critical sections}.
             \end{itemize}
     \end{itemize}
@@ -316,15 +316,15 @@ void g() {
 
                 \textbf{Avg. Time (s)} & 70.98 & 109.11 & 37.96 & 50.93 \\ \hline
 
-                \textbf{Total Time (s)} & 4,117 & 5,892 & 2,164 & 2,750 \\ \hline      
+                \textbf{Total Time (s)} & 4,117 & 5,892 & 2,164 & 2,750 \\ \hline
             \end{tabular}
         \end{column}
-        
+
         \hfill
     \end{columns}
-    
+
     \vfill
-    
+
     \begin{columns}
         \begin{column}{1.07 \linewidth}
             \begin{itemize}
@@ -332,9 +332,9 @@ void g() {
                     \bigskip
                     \begin{itemize}\setlength\itemsep{1.5em}
                         \item Successfully \alert{rediscovered} \emph{already fixed reported real bugs}.
-                        
+
                         \item The number of \emph{reported bugs} was \alert{significantly reduced} ($ \sim\!4\times $).
-                        
+
                         \item Still hard to say \emph{which of the bugs are real}\,---\,the \alert{accuracy} needs to be further improved.
                     \end{itemize}
             \end{itemize}
@@ -354,13 +354,13 @@ void g() {
             \begin{itemize}
                 \item approximation with sets, support for C++ and Java, distinguishing different lock instances, parametrisation of the analysis.
             \end{itemize}
-            
+
         \item Successfully \emph{tested} and \emph{experimentally evaluated}.
             \smallskip
             \begin{itemize}
                 \item Both \emph{scalability} and \emph{accuracy} were \alert{increased}.
             \end{itemize}
-            
+
         \item Experiments with \emph{real-life programs}.
     \end{itemize}
 
@@ -375,9 +375,9 @@ void g() {
                 \item Combining with \emph{dynamic analysis}.
 
                 \item \emph{Statistic ranking} of atomic functions/reported errors.
-                
+
                 \item Considering \emph{formal parameters} of function.
-                
+
                 \item \emph{Machine learning} of analysis parameter values.
             \end{itemize}
     \end{itemize}
@@ -419,16 +419,16 @@ void g() {
 \section{Rediscovered Bug in Apache Tomcat}
 \begin{frame}[fragile]{Rediscovered Bug in Apache Tomcat}
     \alert{Real-life bug} in package \texttt{org.apache.catalina.core.StandardContext}.
-    
+
     \medskip
-    
+
 \begin{lstlisting}[language=java]
 public void addParameter(String name, String value) {
   <@\texttt{\ldots}@>
   if (parameters.get(name) != null)
     throw new IllegalArgumentException
       (sm.getString("standardContext.parameter.duplicate", name));
-    
+
   // Add this parameter to our defined set
   synchronized (parameters) {
     parameters.put(name, value);
@@ -447,29 +447,29 @@ public void addParameter(String name, String value) {
             \smallskip
             \begin{itemize}\setlength\itemsep{.8em}
                 \item $ Var $ is a~set of all variables,
-                
+
                 \item $ Field $ is a~set of field names.
             \end{itemize}
-        
+
         \item Identification of \alert{critical sections}: $ (\pi, l) \in \Pi \times \mathbb{N}^\top $
             \smallskip
             \begin{itemize}\setlength\itemsep{.8em}
                 \item $ \pi $ is an access path that identifies the \emph{lock object} that locks the section,
-                
+
                 \item $ l $ is the \emph{number of locks} of the lock object identified by~$ \pi $,
-                
+
                 \item $ \mathbb{N}^\top $ denotes $ \mathbb{N} \cup \{\top\} $
                     \smallskip
                     \begin{itemize}
                         \item $ \top $ represents a~number larger than some \alert{upper bound}~$ t \in \mathbb{N} $.
                     \end{itemize}
             \end{itemize}
-        
+
         \item Representation of \alert{lock guards}: $ (\pi_g, L) \in \Pi \times 2^\Pi $
             \smallskip
             \begin{itemize}\setlength\itemsep{.8em}
                 \item $ \pi_g $ is is an access path that identifies the \emph{lock guard},
-                
+
                 \item $ L $ is a~set of access paths that identify the \emph{lock objects} associated with the guard identified by~$ \pi_g $.
             \end{itemize}
     \end{itemize}
